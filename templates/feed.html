@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ room.name }} - Pretitude</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Patrick+Hand&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --brown-dark: #654321;
+            --brown-medium: #8B5A2B;
+            --brown-light: #C19A6B;
+            --bg-color: #f5f5dc;
+            --text-color: #4a3f35;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: radial-gradient(#d2b48c 15%, transparent 16%), radial-gradient(#d2b48c 15%, transparent 16%);
+            background-size: 20px 20px;
+            font-family: 'Patrick Hand', cursive;
+            padding-bottom: 100px;
+            color: var(--text-color);
+        }
+
+        /* HEADER */
+        .header-container {
+            text-align: center;
+            padding: 20px;
+            position: relative; /* Para posicionar o botão de perfil */
+        }
+
+        /* Botão de Perfil no Topo */
+        .btn-profile-settings {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: var(--brown-dark);
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .header-title {
+            font-family: 'Amatic SC', cursive;
+            font-size: 4rem;
+            color: var(--brown-dark);
+            margin-bottom: 10px;
+        }
+
+        /* MANIFESTO */
+        .manifesto-box {
+            background-color: rgba(139, 90, 43, 0.1);
+            border-left: 4px solid var(--brown-dark);
+            padding: 15px 20px;
+            margin: 0 auto 30px auto;
+            max-width: 600px;
+            text-align: center;
+            font-size: 1.2rem;
+            line-height: 1.4;
+            border-radius: 0 8px 8px 0;
+            font-style: italic;
+        }
+
+        /* FEED */
+        .feed-container {
+            display: flex; flex-wrap: wrap; justify-content: center;
+            gap: 30px; max-width: 1200px; margin: 0 auto; padding: 20px;
+        }
+
+        /* CARD */
+        .post-card {
+            background-color: var(--brown-light);
+            padding: 12px 12px 45px 12px;
+            box-shadow: 6px 6px 15px rgba(0,0,0,0.25);
+            width: 100%; max-width: 350px;
+            transform: rotate(-1deg);
+            transition: transform 0.2s;
+            display: flex; flex-direction: column;
+        }
+        .post-card:nth-child(even) { transform: rotate(1deg); }
+        .post-card:hover { transform: rotate(0deg) scale(1.02); z-index: 5; }
+
+        .card-header {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 8px; padding: 0 5px;
+        }
+
+        .user-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            object-fit: cover; border: 2px solid white; background-color: #ddd;
+        }
+
+        .card-user-name {
+            color: white; font-family: 'Amatic SC', cursive; font-size: 1.5rem; flex-grow: 1;
+        }
+
+        .card-photo-area { background-color: white; padding: 10px; }
+        .card-photo-area img { width: 100%; height: auto; max-height: 400px; object-fit: cover; border: 1px solid #ddd; display: block;}
+        
+        .card-actions { margin-top: 10px; display: flex; gap: 15px; font-size: 1.3rem; color: #555; }
+        .card-caption { margin-top: 12px; font-size: 1.1rem; line-height: 1.3; }
+        .btn-delete { background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem; }
+
+        /* FAB */
+        .fab {
+            position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px;
+            background-color: var(--brown-dark); color: white; border-radius: 50%;
+            border: 3px solid #f5f5dc; font-size: 28px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 100;
+        }
+
+        /* MODAIS */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 200; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 25px; width: 90%; max-width: 400px; border-radius: 8px; text-align: center; border: 4px solid var(--brown-medium); }
+        .modal input[type="text"], .modal textarea { width: 100%; margin-top: 10px; padding: 12px; border: 2px solid var(--brown-light); font-family: 'Patrick Hand', cursive; }
+        .btn-primary { width: 100%; background: var(--brown-dark); color: white; padding: 12px; border: none; margin-top: 15px; cursor: pointer; font-family: 'Amatic SC', cursive; font-size: 1.4rem; font-weight: bold;}
+
+        /* Upload Avatar */
+        .avatar-upload-label {
+            display: block; width: 100px; height: 100px; background: #eee; border-radius: 50%;
+            margin: 10px auto; overflow: hidden; position: relative; cursor: pointer; border: 3px solid var(--brown-medium);
+        }
+        .avatar-upload-label img { width: 100%; height: 100%; object-fit: cover; }
+        .avatar-upload-label i { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #888; font-size: 24px; }
+    </style>
+</head>
+<body>
+
+    <div id="roomData" 
+         data-hash="{{ room.hash_id }}" 
+         data-institution="{{ room.institution }}"
+         data-host-uuid="{{ room.host_uuid }}">
+    </div>
+
+    <div class="header-container">
+        <button class="btn-profile-settings" onclick="openProfileModal()" title="Editar Perfil">
+            <i class="fas fa-user-circle"></i>
+        </button>
+
+        <h1 class="header-title">Pretitude</h1>
+        
+        <div class="manifesto-box">
+            Um quilombo digital de memória, afeto e futuro.<br>
+            Aqui, narramos e celebramos vidas negras em toda sua potência criativa e transformadora.<br>
+            <strong>Seja bem-vinde à Pretitude.</strong>
+        </div>
+    </div>
+
+    <div class="feed-container">
+        {% for post in posts %}
+        <div class="post-card" id="post-{{ post.id }}">
+            <div class="card-header">
+                {% if post.user_avatar %}
+                    <img src="{{ url_for('static', filename='avatars/' + post.user_avatar) }}" class="user-avatar">
+                {% else %}
+                    <div class="user-avatar" style="background: #888; display:flex; align-items:center; justify-content:center; color:white;">
+                        {{ post.user_name[0] }}
+                    </div>
+                {% endif %}
+                
+                <span class="card-user-name">{{ post.user_name.split(' - ')[0] }}</span>
+                
+                <button class="btn-delete" onclick="deletePost({{ post.id }})" style="display:none;">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+
+            <div class="card-photo-area">
+                <img src="{{ url_for('static', filename='uploads/' + post.image_filename) }}">
+                <div class="card-actions">
+                    <i class="fas fa-heart"></i>
+                    <i class="far fa-comment"></i>
+                    <i class="far fa-paper-plane"></i>
+                </div>
+                <div class="card-caption">{{ post.caption }}</div>
+            </div>
+        </div>
+        {% else %}
+        <div style="text-align: center; width: 100%; color: var(--brown-dark); margin-top: 30px;">
+            <h3>O quilombo ainda está silencioso...</h3>
+            <p>Seja a primeira pessoa a contar uma história.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <button class="fab" onclick="openPostModal()">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <h2 style="font-family: 'Amatic SC'; color: var(--brown-dark);">Quem é você?</h2>
+            
+            <label class="avatar-upload-label">
+                <input type="file" id="avatarInput" accept="image/*" style="display: none;" onchange="previewAvatar()">
+                <img id="avatarPreview" src="" style="display:none;">
+                <i id="avatarIcon" class="fas fa-camera"></i>
+            </label>
+            <p style="font-size: 0.8rem; color: #666;">Foto de Perfil</p>
+
+            <input type="text" id="nameInput" placeholder="Seu Nome">
+            <button onclick="saveProfile()" class="btn-primary">Entrar no Quilombo</button>
+            <button onclick="closeProfileModal()" id="btnCloseProfile" style="margin-top: 10px; background: transparent; border: none; width: 100%; cursor: pointer; color: #888; display:none;">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="postModal" class="modal">
+        <div class="modal-content">
+            <h2 style="font-family: 'Amatic SC'; color: var(--brown-dark);">Nova Postagem</h2>
+            <input type="file" id="postFileInput" accept="image/*">
+            <textarea id="captionInput" placeholder="Escreva sua memória..." rows="3"></textarea>
+            <button onclick="submitPost()" class="btn-primary">Publicar</button>
+            <button onclick="closePostModal()" style="margin-top: 10px; background: transparent; border: none; width: 100%; cursor: pointer; color: #888;">Cancelar</button>
+        </div>
+    </div>
+
+    <script>
+        const Storage = {
+            getUUID: () => {
+                let uuid = localStorage.getItem('user_uuid');
+                if (!uuid) { uuid = crypto.randomUUID(); localStorage.setItem('user_uuid', uuid); }
+                return uuid;
+            },
+            getProfile: () => {
+                return {
+                    name: localStorage.getItem('user_name'),
+                    avatar: localStorage.getItem('user_avatar_filename')
+                };
+            },
+            setProfile: (name, avatarFilename) => {
+                localStorage.setItem('user_name', name);
+                if(avatarFilename) localStorage.setItem('user_avatar_filename', avatarFilename);
+            }
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const hostUUID = document.getElementById('roomData').dataset.hostUuid;
+            const profile = Storage.getProfile();
+
+            // 1. Se não tiver nome, abre modal. Se tiver, carrega a foto no modal caso ele queira editar.
+            if (!profile.name) {
+                document.getElementById('profileModal').style.display = 'flex';
+                // Esconde botão cancelar se for o primeiro acesso
+                document.getElementById('btnCloseProfile').style.display = 'none';
+            } else {
+                // Preenche o modal com dados atuais caso ele queira editar
+                document.getElementById('nameInput').value = profile.name;
+                if(profile.avatar) {
+                    document.getElementById('avatarPreview').src = "/static/avatars/" + profile.avatar;
+                    document.getElementById('avatarPreview').style.display = 'block';
+                    document.getElementById('avatarIcon').style.display = 'none';
+                }
+            }
+
+            // 2. Se for Host, mostra botão de apagar
+            if (Storage.getUUID() === hostUUID) {
+                document.querySelectorAll('.btn-delete').forEach(btn => btn.style.display = 'block');
+            }
+        });
+
+        // --- Funções de Perfil ---
+        function openProfileModal() { 
+            document.getElementById('profileModal').style.display = 'flex'; 
+            document.getElementById('btnCloseProfile').style.display = 'block';
+        }
+        function closeProfileModal() { document.getElementById('profileModal').style.display = 'none'; }
+
+        function previewAvatar() {
+            const file = document.getElementById('avatarInput').files[0];
+            const preview = document.getElementById('avatarPreview');
+            const icon = document.getElementById('avatarIcon');
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    icon.style.display = 'none';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function saveProfile() {
+            const name = document.getElementById('nameInput').value;
+            const avatarFile = document.getElementById('avatarInput').files[0];
+            const btn = document.querySelector('#profileModal .btn-primary');
+
+            if (!name) return alert("Por favor, diga seu nome.");
+
+            btn.innerText = "Salvando...";
+            let avatarFilename = Storage.getProfile().avatar; // Mantém o antigo se não mudar
+
+            if (avatarFile) {
+                const formData = new FormData();
+                formData.append('avatar', avatarFile);
+                try {
+                    const res = await fetch('/api/upload_avatar', { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (data.filename) avatarFilename = data.filename;
+                } catch (e) { console.error(e); }
+            }
+
+            Storage.setProfile(name, avatarFilename);
+            location.reload(); 
+        }
+
+        // --- Funções de Postagem ---
+        function openPostModal() { document.getElementById('postModal').style.display = 'flex'; }
+        function closePostModal() { document.getElementById('postModal').style.display = 'none'; }
+
+        async function submitPost() {
+            const fileInput = document.getElementById('postFileInput');
+            const caption = document.getElementById('captionInput').value;
+            const roomHash = document.getElementById('roomData').dataset.hash;
+            const inst = document.getElementById('roomData').dataset.institution;
+            const profile = Storage.getProfile();
+
+            if (fileInput.files.length === 0) return alert("Escolha uma foto!");
+
+            const formData = new FormData();
+            formData.append('photo', fileInput.files[0]);
+            formData.append('caption', caption);
+            formData.append('user_name', `${profile.name} - ${inst}`);
+            formData.append('user_avatar', profile.avatar || "");
+
+            const btn = document.querySelector('#postModal .btn-primary');
+            btn.innerText = "Enviando...";
+            btn.disabled = true;
+
+            const res = await fetch(`/api/post/${roomHash}`, { method: 'POST', body: formData });
+            if (res.ok) location.reload();
+            else { alert("Erro ao postar."); btn.innerText = "Publicar"; btn.disabled = false; }
+        }
+
+        async function deletePost(postId) {
+            if(!confirm("Remover esta memória?")) return;
+            const res = await fetch(`/api/delete/${postId}`, {
+                method: 'DELETE',
+                headers: { 'X-Host-UUID': Storage.getUUID() }
+            });
+            if (res.ok) document.getElementById(`post-${postId}`).remove();
+        }
+        
+        // Fechar modais ao clicar fora
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('postModal')) closePostModal();
+            if (event.target == document.getElementById('profileModal')) {
+                 // Só fecha se já tiver nome (não deixa fechar se for o login inicial)
+                 if(Storage.getProfile().name) closeProfileModal();
+            }
+        }
+    </script>
+</body>
+</html>

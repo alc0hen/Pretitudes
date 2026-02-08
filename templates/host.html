@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* Fundo e Centralização Geral */
+    .host-screen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        width: 100%;
+        background-color: #f5f5dc;
+        background-image: radial-gradient(#d2b48c 15%, transparent 16%);
+        background-size: 25px 25px;
+        padding: 20px;
+    }
+    
+    .host-title {
+        font-family: 'Amatic SC', cursive;
+        font-size: 3rem;
+        color: #654321;
+        margin-bottom: 20px;
+        text-align: center;
+        text-shadow: 1px 1px 0px rgba(255,255,255,0.5);
+    }
+
+    /* O Cartão */
+    .card {
+        background-color: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        width: 100%;
+        max-width: 380px; /* Largura controlada */
+        border: 2px solid #e0ccb1;
+        position: relative;
+    }
+
+    /* Área do Avatar */
+    .avatar-wrapper {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 25px;
+    }
+
+    .avatar-upload {
+        width: 110px;
+        height: 110px;
+        background-color: #f0e6dc;
+        border-radius: 50%;
+        border: 3px dashed #8B5A2B; /* Borda tracejada para indicar upload */
+        position: relative;
+        cursor: pointer;
+        overflow: hidden;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .avatar-upload:hover {
+        background-color: #e8dacd;
+        border-style: solid;
+        transform: scale(1.02);
+    }
+
+    /* O Ícone (Câmera/Mais) */
+    .avatar-upload i {
+        font-size: 2rem;
+        color: #8B5A2B;
+        z-index: 1; /* Garante que fique visível se não houver foto */
+    }
+
+    /* A Imagem (Começa escondida) */
+    .avatar-upload img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: none; /* CORREÇÃO: Escondido por padrão para não mostrar ícone quebrado */
+        z-index: 2; /* Fica acima do ícone quando carregada */
+    }
+
+    .avatar-hint {
+        text-align: center;
+        font-size: 0.9rem;
+        color: #888;
+        margin-top: 8px;
+        display: block;
+    }
+
+    /* Inputs */
+    .form-group { margin-bottom: 15px; }
+    
+    .form-group label {
+        display: block;
+        font-family: 'Amatic SC', cursive;
+        font-size: 1.4rem;
+        color: #654321;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    input[type="text"] {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-family: 'Patrick Hand', cursive;
+        font-size: 1.1rem;
+        background: #fafafa;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+        border-color: #8B5A2B;
+        background: white;
+    }
+
+    /* Botão */
+    .btn-primary {
+        background-color: #654321;
+        color: white;
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-family: 'Amatic SC', cursive;
+        font-size: 1.6rem;
+        cursor: pointer;
+        margin-top: 15px;
+        transition: background 0.2s;
+    }
+
+    .btn-primary:hover { background-color: #4a3015; }
+    .btn-primary:disabled { background-color: #998; cursor: not-allowed; }
+
+</style>
+
+<div class="host-screen">
+    <h1 class="host-title">Iniciar Quilombo</h1>
+    
+    <div class="card">
+        <div class="avatar-wrapper">
+            <div>
+                <label class="avatar-upload" title="Escolher foto">
+                    <input type="file" id="hostAvatar" accept="image/*" style="display:none;" onchange="previewHostAvatar()">
+                    
+                    <i id="hostAvatarIcon" class="fas fa-camera"></i>
+                    
+                    <img id="hostAvatarPreview" src="#" alt="Preview">
+                </label>
+                <span class="avatar-hint">Toque para adicionar foto</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Seu Nome</label>
+            <input type="text" id="hostName" placeholder="Ex: Mestre João">
+        </div>
+
+        <div class="form-group">
+            <label>Instituição</label>
+            <input type="text" id="institution" placeholder="Ex: IFAL">
+        </div>
+
+        <div class="form-group">
+            <label>Nome da Sala</label>
+            <input type="text" id="roomName" placeholder="Ex: Turma de História">
+        </div>
+        
+        <button onclick="createRoom()" class="btn-primary">Criar Espaço</button>
+    </div>
+</div>
+
+<script>
+    function previewHostAvatar() {
+        const file = document.getElementById('hostAvatar').files[0];
+        const preview = document.getElementById('hostAvatarPreview');
+        const icon = document.getElementById('hostAvatarIcon');
+        
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block'; // Mostra a imagem
+                icon.style.display = 'none';     // Esconde o ícone
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    async function createRoom() {
+        const hostName = document.getElementById('hostName').value.trim();
+        const institution = document.getElementById('institution').value.trim();
+        const roomName = document.getElementById('roomName').value.trim();
+        const avatarFile = document.getElementById('hostAvatar').files[0];
+        const btn = document.querySelector('.btn-primary');
+
+        if (!hostName || !institution || !roomName) {
+            return alert("Por favor, preencha todos os campos!");
+        }
+
+        btn.innerText = "Criando...";
+        btn.disabled = true;
+
+        let avatarFilename = "";
+        
+        // 1. Upload do Avatar (se existir)
+        if (avatarFile) {
+            const formData = new FormData();
+            formData.append('avatar', avatarFile);
+            try {
+                const res = await fetch('/api/upload_avatar', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.filename) avatarFilename = data.filename;
+            } catch (e) {
+                console.error("Erro no upload do avatar", e);
+            }
+        }
+
+        // 2. Salvar identidade
+        const userUUID = crypto.randomUUID();
+        localStorage.setItem('user_uuid', userUUID);
+        localStorage.setItem('user_name', hostName);
+        localStorage.setItem('user_institution', institution);
+        if (avatarFilename) localStorage.setItem('user_avatar_filename', avatarFilename);
+
+        // 3. Criar Sala
+        try {
+            const response = await fetch('/api/create_room', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    host_uuid: userUUID,
+                    institution: institution,
+                    room_name: roomName
+                })
+            });
+
+            const data = await response.json();
+            if (data.redirect_url) {
+                window.location.href = data.redirect_url;
+            } else {
+                throw new Error("Erro na resposta do servidor");
+            }
+        } catch (error) {
+            alert("Erro ao criar sala. Tente novamente.");
+            btn.innerText = "Criar Espaço";
+            btn.disabled = false;
+        }
+    }
+</script>
+{% endblock %}
