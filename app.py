@@ -7,10 +7,15 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///pedagogico.db'
+
+# --- Configurações para o Render ---
+# O Render apaga arquivos quando reinicia. Para persistir, o ideal é usar um Render Disk montado.
+# Se você não usar disco, o banco será resetado a cada deploy.
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///pedagogico.db' 
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['AVATAR_FOLDER'] = 'static/avatars'  # Pasta nova para avatares
+app.config['AVATAR_FOLDER'] = 'static/avatars'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
+
 db = SQLAlchemy(app)
 
 # --- Models ---
@@ -25,10 +30,18 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     room_hash = db.Column(db.String(36), db.ForeignKey('room.hash_id'), nullable=False)
     user_name = db.Column(db.String(100), nullable=False)
-    user_avatar = db.Column(db.String(200), nullable=True) # Novo campo: Foto do perfil
+    user_avatar = db.Column(db.String(200), nullable=True)
     image_filename = db.Column(db.String(200), nullable=False)
     caption = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# --- CORREÇÃO CRÍTICA PARA O RENDER ---
+# Isso garante que o banco e as pastas sejam criados quando o Gunicorn iniciar
+with app.app_context():
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(app.config['AVATAR_FOLDER'], exist_ok=True)
+    db.create_all()
+    print("Banco de dados e pastas inicializados com sucesso!")
 
 # --- Rotas ---
 @app.route('/')
@@ -60,7 +73,6 @@ def create_room():
     db.session.commit()
     return jsonify({'redirect_url': url_for('join_room', room_hash=room_hash, _external=True)})
 
-# Rota específica para subir o avatar do usuário
 @app.route('/api/upload_avatar', methods=['POST'])
 def upload_avatar():
     file = request.files.get('avatar')
@@ -76,7 +88,7 @@ def upload_avatar():
 def add_post(room_hash):
     file = request.files.get('photo')
     user_name = request.form.get('user_name')
-    avatar_filename = request.form.get('user_avatar') # Recebe o nome do avatar já salvo
+    avatar_filename = request.form.get('user_avatar')
     caption = request.form.get('caption')
 
     if not file or not user_name:
@@ -88,7 +100,7 @@ def add_post(room_hash):
     new_post = Post(
         room_hash=room_hash,
         user_name=user_name,
-        user_avatar=avatar_filename, # Salva no banco
+        user_avatar=avatar_filename,
         image_filename=filename,
         caption=caption
     )
@@ -106,11 +118,6 @@ def delete_post(post_id):
         return jsonify({'success': True})
     return jsonify({'error': 'Não autorizado'}), 403
 
+# Este bloco só roda se você testar localmente com 'python app.py'
 if __name__ == '__main__':
-    # Cria as pastas se não existirem
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    os.makedirs(app.config['AVATAR_FOLDER'], exist_ok=True)
-    
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    app.run(debug=True, port=5000)
