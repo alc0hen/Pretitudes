@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .profile-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        color: #4a3f35;
+    }
+    .profile-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        border: 4px solid #8B5A2B;
+        object-fit: cover;
+        margin-bottom: 15px;
+    }
+    .profile-name {
+        font-family: 'Amatic SC', cursive;
+        font-size: 2.5rem;
+        margin-bottom: 5px;
+        color: #654321;
+    }
+    .profile-email {
+        color: #888;
+        font-size: 1.1rem;
+    }
+
+    .section-title {
+        font-family: 'Amatic SC', cursive;
+        font-size: 2rem;
+        color: #654321;
+        border-bottom: 2px solid #e0ccb1;
+        padding-bottom: 5px;
+        margin: 30px 0 20px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .room-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 20px;
+    }
+
+    .room-card {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        border: 1px solid #e0ccb1;
+        transition: transform 0.2s;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    .room-card:hover { transform: translateY(-5px); }
+    .room-name { font-weight: bold; font-size: 1.2rem; margin-bottom: 5px; color: #8B5A2B; }
+    .room-inst { font-size: 0.9rem; color: #666; }
+
+    .btn-create {
+        background-color: #654321;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 5px;
+        font-size: 1.2rem;
+        text-decoration: none;
+        font-family: 'Patrick Hand', cursive;
+        cursor: pointer;
+        border: none;
+    }
+    .btn-create:hover { background-color: #4a3015; }
+
+    /* Modal for Create Room */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 200; align-items: center; justify-content: center; }
+    .modal-content { background: white; padding: 25px; width: 90%; max-width: 400px; border-radius: 8px; text-align: center; border: 4px solid #8B5A2B; }
+    .modal input[type="text"] { width: 100%; margin-top: 10px; padding: 12px; border: 2px solid #e0ccb1; font-family: 'Patrick Hand', cursive; }
+
+    .empty-state {
+        text-align: center;
+        padding: 30px;
+        border: 2px dashed #e0ccb1;
+        border-radius: 10px;
+        color: #8B5A2B;
+        grid-column: 1 / -1;
+    }
+</style>
+
+<div class="profile-container">
+    <div class="profile-header">
+        <img src="{{ user.avatar }}" alt="Avatar" class="profile-avatar">
+        <h1 class="profile-name">{{ user.name }}</h1>
+        <p class="profile-email">{{ user.email }}</p>
+        <br>
+        <a href="{{ url_for('logout') }}" style="color: #DB4437; text-decoration: underline;">Sair</a>
+    </div>
+
+    <div class="section-title">
+        Minhas Salas
+        <button onclick="openCreateModal()" class="btn-create"><i class="fas fa-plus"></i> Criar Sala</button>
+    </div>
+
+    <div class="room-list">
+        {% for room in user.rooms_owned %}
+        <a href="{{ url_for('join_room', room_hash=room.hash_id) }}" class="room-card">
+            <div class="room-name">{{ room.name }}</div>
+            <div class="room-inst">{{ room.institution }}</div>
+        </a>
+        {% else %}
+        <div class="empty-state">
+            <p>Você ainda não criou nenhuma sala.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="section-title">
+        Salas que Participo
+    </div>
+
+    <div class="room-list">
+        {% for member in user.joined_rooms %}
+        <a href="{{ url_for('join_room', room_hash=member.room.hash_id) }}" class="room-card">
+            <div class="room-name">{{ member.room.name }}</div>
+            <div class="room-inst">{{ member.room.institution }}</div>
+        </a>
+        {% else %}
+        <div class="empty-state">
+            <p>Você ainda não participa de nenhuma sala.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div id="createRoomModal" class="modal">
+    <div class="modal-content">
+        <h2 style="font-family: 'Amatic SC'; color: #654321;">Criar Novo Espaço</h2>
+        <input type="text" id="institution" placeholder="Instituição (Ex: IFAL)">
+        <input type="text" id="roomName" placeholder="Nome da Sala">
+        <button onclick="createRoom()" class="btn-create" style="width:100%; margin-top:15px;">Criar</button>
+        <button onclick="closeCreateModal()" style="margin-top: 10px; background: transparent; border: none; width: 100%; cursor: pointer; color: #888;">Cancelar</button>
+    </div>
+</div>
+
+<script>
+    function openCreateModal() { document.getElementById('createRoomModal').style.display = 'flex'; }
+    function closeCreateModal() { document.getElementById('createRoomModal').style.display = 'none'; }
+
+    async function createRoom() {
+        const institution = document.getElementById('institution').value.trim();
+        const roomName = document.getElementById('roomName').value.trim();
+        const btn = document.querySelector('#createRoomModal .btn-create');
+
+        if (!institution || !roomName) return alert("Preencha todos os campos!");
+
+        btn.innerText = "Criando..."; btn.disabled = true;
+
+        try {
+            const response = await fetch('/api/create_room', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ institution: institution, room_name: roomName })
+            });
+            const data = await response.json();
+            if (data.redirect_url) { window.location.href = data.redirect_url; }
+        } catch (error) {
+            alert("Erro ao criar sala.");
+            btn.innerText = "Criar"; btn.disabled = false;
+        }
+    }
+</script>
+{% endblock %}
