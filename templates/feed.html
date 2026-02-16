@@ -6,7 +6,6 @@
     <title>{{ room.name }} - Pretitude</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Patrick+Hand&display=swap" rel="stylesheet">
-
     <style>
         :root {
             --brown-dark: #654321;
@@ -27,127 +26,108 @@
             color: var(--text-color);
         }
 
-        /* HEADER */
-        .header-container {
-            text-align: center;
-            padding: 20px;
-            position: relative;
-        }
+        .header-container { text-align: center; padding: 20px; position: relative; }
+        .btn-back { position: absolute; top: 20px; left: 20px; background: none; border: none; color: var(--brown-dark); font-size: 1.5rem; cursor: pointer; text-decoration: none; }
+        .logo-img { max-width: 280px; width: 80%; height: auto; display: block; margin: 0 auto 15px auto; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.1)); }
+        .manifesto-box { background-color: rgba(139, 90, 43, 0.1); border-left: 4px solid var(--brown-dark); padding: 15px 20px; margin: 0 auto 30px auto; max-width: 600px; text-align: center; font-size: 1.2rem; line-height: 1.4; border-radius: 0 8px 8px 0; font-style: italic; }
 
-        /* Botão de Perfil */
-        .btn-profile-settings {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: none;
-            border: none;
-            color: var(--brown-dark);
-            font-size: 1.5rem;
-            cursor: pointer;
-            z-index: 10;
-        }
-
-        /* LOGO (Substituindo o Título) */
-        .logo-img {
-            max-width: 280px; /* Tamanho máximo do logo */
-            width: 80%;       /* Responsivo no celular */
-            height: auto;
-            display: block;
-            margin: 0 auto 15px auto; /* Centraliza */
-            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.1)); /* Sombra leve */
-        }
-
-        /* MANIFESTO */
-        .manifesto-box {
-            background-color: rgba(139, 90, 43, 0.1);
-            border-left: 4px solid var(--brown-dark);
-            padding: 15px 20px;
-            margin: 0 auto 30px auto;
-            max-width: 600px;
-            text-align: center;
-            font-size: 1.2rem;
-            line-height: 1.4;
-            border-radius: 0 8px 8px 0;
-            font-style: italic;
-        }
-
-        /* FEED */
         .feed-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; max-width: 1200px; margin: 0 auto; padding: 20px; }
 
-        /* CARD */
-        .post-card {
-            background-color: var(--brown-light);
-            padding: 12px 12px 45px 12px;
-            box-shadow: 6px 6px 15px rgba(0,0,0,0.25);
-            width: 100%; max-width: 350px;
-            transform: rotate(-1deg); transition: transform 0.2s;
-            display: flex; flex-direction: column;
-        }
+        .post-card { background-color: var(--brown-light); padding: 12px 12px 45px 12px; box-shadow: 6px 6px 15px rgba(0,0,0,0.25); width: 100%; max-width: 350px; transform: rotate(-1deg); transition: transform 0.2s; display: flex; flex-direction: column; }
         .post-card:nth-child(even) { transform: rotate(1deg); }
         .post-card:hover { transform: rotate(0deg) scale(1.02); z-index: 5; }
 
+        /* Animação para novos posts */
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1) rotate(-1deg); opacity: 1; }
+        }
+        .new-post-animation { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
         .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 0 5px; }
         .user-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid white; background-color: #ddd; }
+        .user-avatar-placeholder { width: 40px; height: 40px; border-radius: 50%; border: 2px solid white; background: #888; display:flex; align-items:center; justify-content:center; color:white; font-weight: bold; }
         .card-user-name { color: white; font-family: 'Amatic SC', cursive; font-size: 1.5rem; flex-grow: 1; }
-        .card-photo-area { background-color: white; padding: 10px; }
-        .card-photo-area img { width: 100%; height: auto; max-height: 400px; object-fit: cover; border: 1px solid #ddd; display: block;}
+
+        .card-photo-area { background-color: white; padding: 10px; min-height: 200px; display: flex; flex-direction: column; }
+        .card-photo-area img {
+            width: 100%; height: auto; max-height: 400px; object-fit: cover; border: 1px solid #ddd; display: block;
+            background-color: #f0f0f0;
+        }
+
         .card-actions { margin-top: 10px; display: flex; gap: 15px; font-size: 1.3rem; color: #555; }
         .card-caption { margin-top: 12px; font-size: 1.1rem; line-height: 1.3; }
         .btn-delete { background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem; }
 
-        /* FAB */
-        .fab {
-            position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px;
-            background-color: var(--brown-dark); color: white; border-radius: 50%;
-            border: 3px solid #f5f5dc; font-size: 28px; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 100;
-        }
+        .fab { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background-color: var(--brown-dark); color: white; border-radius: 50%; border: 3px solid #f5f5dc; font-size: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 100; transition: transform 0.2s; }
+        .fab:hover { transform: scale(1.1); }
 
-        /* MODAIS */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 200; align-items: center; justify-content: center; }
         .modal-content { background: white; padding: 25px; width: 90%; max-width: 400px; border-radius: 8px; text-align: center; border: 4px solid var(--brown-medium); }
-        .modal input[type="text"], .modal textarea { width: 100%; margin-top: 10px; padding: 12px; border: 2px solid var(--brown-light); font-family: 'Patrick Hand', cursive; }
+        .modal input[type="text"], .modal textarea { width: 100%; margin-top: 10px; padding: 12px; border: 2px solid var(--brown-light); font-family: 'Patrick Hand', cursive; resize: none; }
         .btn-primary { width: 100%; background: var(--brown-dark); color: white; padding: 12px; border: none; margin-top: 15px; cursor: pointer; font-family: 'Amatic SC', cursive; font-size: 1.4rem; font-weight: bold;}
-        .avatar-upload-label { display: block; width: 100px; height: 100px; background: #eee; border-radius: 50%; margin: 10px auto; overflow: hidden; position: relative; cursor: pointer; border: 3px solid var(--brown-medium); }
-        .avatar-upload-label img { width: 100%; height: 100%; object-fit: cover; }
-        .avatar-upload-label i { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #888; font-size: 24px; }
+        .btn-primary:disabled { background: #999; cursor: not-allowed; }
+
+        #empty-state { text-align: center; width: 100%; color: var(--brown-dark); margin-top: 30px; font-size: 1.3rem; }
     </style>
 </head>
 <body>
-    <div id="roomData" data-hash="{{ room.hash_id }}" data-institution="{{ room.institution }}" data-host-uuid="{{ room.host_uuid }}"></div>
+    <div id="roomData" data-hash="{{ room.hash_id }}"></div>
 
     <div class="header-container">
-        <button class="btn-profile-settings" onclick="openProfileModal()" title="Editar Perfil">
-            <i class="fas fa-user-circle"></i>
-        </button>
-
+        <a href="{{ url_for('profile') }}" class="btn-back" title="Voltar ao Perfil">
+            <i class="fas fa-arrow-left"></i>
+        </a>
         <img src="{{ url_for('static', filename='1.webp') }}" alt="Pretitude" class="logo-img">
-        
         <div class="manifesto-box">
-Inspirado no legado de Beatriz Nascimento, este território digital é um quilombo contemporâneo. Um espaço de memória, afeto e futuro, onde cada postagem reafirma que a nossa história é feita por mãos negras. Aqui, celebramos a vida em sua máxima potência criativa.
+            Inspirado no legado de Beatriz Nascimento, este território digital é um quilombo contemporâneo. Um espaço de memória, afeto e futuro, onde cada postagem reafirma que a nossa história é feita por mãos negras. Aqui, celebramos a vida em sua máxima potência criativa.<br>
+            Sala: <strong>{{ room.name }}</strong> - {{ room.institution }}
         </div>
     </div>
 
-    <div class="feed-container">
+    {% set max_id = 0 %}
+    {% if posts %}
+        {% set max_id = posts[0].id %}
+    {% endif %}
+
+    <div class="feed-container" id="feed-container" data-last-id="{{ max_id }}">
         {% for post in posts %}
         <div class="post-card" id="post-{{ post.id }}">
             <div class="card-header">
-                {% if post.user_avatar %}
-                    <img src="{{ url_for('static', filename='avatars/' + post.user_avatar) }}" class="user-avatar">
+                {% if post.author.avatar %}
+                    <img src="{{ post.author.avatar }}" class="user-avatar" referrerpolicy="no-referrer" alt="Avatar">
                 {% else %}
-                    <div class="user-avatar" style="background: #888; display:flex; align-items:center; justify-content:center; color:white;">{{ post.user_name[0] }}</div>
+                    <div class="user-avatar-placeholder">{{ post.author.name[0] | upper }}</div>
                 {% endif %}
-                <span class="card-user-name">{{ post.user_name.split(' - ')[0] }}</span>
-                <button class="btn-delete" onclick="deletePost({{ post.id }})" style="display:none;"><i class="fas fa-trash"></i></button>
+
+                <span class="card-user-name">{{ post.author.name }}</span>
+
+                {% if current_user.id == post.author_id or current_user.id == room.owner_id %}
+                <button class="btn-delete" onclick="deletePost({{ post.id }})" title="Apagar memória">
+                    <i class="fas fa-trash"></i>
+                </button>
+                {% endif %}
             </div>
+
             <div class="card-photo-area">
-                <img src="{{ url_for('static', filename='uploads/' + post.image_filename) }}">
-                <div class="card-actions"><i class="fas fa-heart"></i><i class="far fa-comment"></i><i class="far fa-paper-plane"></i></div>
+                <img
+                    src="{{ url_for('cdn_proxy', file_id=post.drive_file_id) }}"
+                    alt="Memória de {{ post.author.name }}"
+                    loading="lazy"
+                    onerror="this.onerror=null; this.src='https://placehold.co/400x400/efebe9/654321?text=Imagem+Indispon%C3%ADvel';"
+                >
+                <div class="card-actions">
+                    <i class="fas fa-heart"></i>
+                    <i class="far fa-comment"></i>
+                </div>
+                {% if post.caption %}
                 <div class="card-caption">{{ post.caption }}</div>
+                {% endif %}
             </div>
         </div>
         {% else %}
-        <div style="text-align: center; width: 100%; color: var(--brown-dark); margin-top: 30px;">
+        <div id="empty-state">
+            <i class="fas fa-wind" style="font-size: 3rem; margin-bottom: 10px; display: block;"></i>
             <h3>O quilombo ainda está silencioso...</h3>
             <p>Seja a primeira pessoa a contar uma história.</p>
         </div>
@@ -156,115 +136,151 @@ Inspirado no legado de Beatriz Nascimento, este território digital é um quilom
 
     <button class="fab" onclick="openPostModal()"><i class="fas fa-plus"></i></button>
 
-    <div id="profileModal" class="modal">
-        <div class="modal-content">
-            <h2 style="font-family: 'Amatic SC'; color: var(--brown-dark);">Quem é você?</h2>
-            <label class="avatar-upload-label">
-                <input type="file" id="avatarInput" accept="image/*" style="display: none;" onchange="previewAvatar()">
-                <img id="avatarPreview" src="" style="display:none;">
-                <i id="avatarIcon" class="fas fa-camera"></i>
-            </label>
-            <p style="font-size: 0.8rem; color: #666;">Foto de Perfil</p>
-            <input type="text" id="nameInput" placeholder="Seu Nome">
-            <button onclick="saveProfile()" class="btn-primary">Entrar no Quilombo</button>
-            <button onclick="closeProfileModal()" id="btnCloseProfile" style="margin-top: 10px; background: transparent; border: none; width: 100%; cursor: pointer; color: #888; display:none;">Cancelar</button>
-        </div>
-    </div>
-
     <div id="postModal" class="modal">
         <div class="modal-content">
-            <h2 style="font-family: 'Amatic SC'; color: var(--brown-dark);">Nova Postagem</h2>
-            <input type="file" id="postFileInput" accept="image/*">
-            <textarea id="captionInput" placeholder="Escreva sua memória..." rows="3"></textarea>
-            <button onclick="submitPost()" class="btn-primary">Publicar</button>
-            <button onclick="closePostModal()" style="margin-top: 10px; background: transparent; border: none; width: 100%; cursor: pointer; color: #888;">Cancelar</button>
+            <h2 style="font-family: 'Amatic SC'; color: var(--brown-dark);">Nova Memória</h2>
+            <input type="file" id="postFileInput" accept="image/*" style="margin-top: 20px;">
+            <textarea id="captionInput" placeholder="Escreva sobre esta lembrança..." rows="3"></textarea>
+            <button onclick="submitPost()" class="btn-primary" id="btnSubmit">Publicar</button>
+            <button onclick="closePostModal()" style="margin-top: 10px; background: transparent; border: none; width: 100%; cursor: pointer; color: #888; font-family: 'Patrick Hand'; font-size: 1rem;">Cancelar</button>
         </div>
     </div>
 
     <script>
-        const Storage = {
-            getUUID: () => {
-                let uuid = localStorage.getItem('user_uuid');
-                if (!uuid) { uuid = crypto.randomUUID(); localStorage.setItem('user_uuid', uuid); }
-                return uuid;
-            },
-            getProfile: () => {
-                return { name: localStorage.getItem('user_name'), avatar: localStorage.getItem('user_avatar_filename') };
-            },
-            setProfile: (name, avatarFilename) => {
-                localStorage.setItem('user_name', name);
-                if(avatarFilename) localStorage.setItem('user_avatar_filename', avatarFilename);
-            }
-        };
+        const roomHash = document.getElementById('roomData').dataset.hash;
+        const feedContainer = document.getElementById('feed-container');
 
-        document.addEventListener("DOMContentLoaded", () => {
-            const hostUUID = document.getElementById('roomData').dataset.hostUuid;
-            const profile = Storage.getProfile();
-            if (!profile.name) {
-                document.getElementById('profileModal').style.display = 'flex';
-                document.getElementById('btnCloseProfile').style.display = 'none';
-            } else {
-                document.getElementById('nameInput').value = profile.name;
-                if(profile.avatar) {
-                    document.getElementById('avatarPreview').src = "/static/avatars/" + profile.avatar;
-                    document.getElementById('avatarPreview').style.display = 'block';
-                    document.getElementById('avatarIcon').style.display = 'none';
+        // --- SISTEMA DE ATUALIZAÇÃO AUTOMÁTICA (POLLING) ---
+        function startPolling() {
+            setInterval(async () => {
+                const lastId = feedContainer.dataset.lastId || 0;
+                try {
+                    const res = await fetch(`/api/updates/${roomHash}?since=${lastId}`);
+                    if (!res.ok) return;
+
+                    const newPosts = await res.json();
+
+                    if (newPosts.length > 0) {
+                        // Remove o aviso de "vazio" se existir
+                        const emptyState = document.getElementById('empty-state');
+                        if (emptyState) emptyState.remove();
+
+                        // Atualiza o ID mais recente
+                        feedContainer.dataset.lastId = newPosts[newPosts.length - 1].id;
+
+                        // Adiciona os posts novos no topo
+                        newPosts.forEach(post => {
+                            const html = createPostCard(post);
+                            feedContainer.insertAdjacentHTML('afterbegin', html);
+                        });
+                    }
+                } catch (e) {
+                    console.error("Erro na atualização:", e);
                 }
-            }
-            if (Storage.getUUID() === hostUUID) {
-                document.querySelectorAll('.btn-delete').forEach(btn => btn.style.display = 'block');
-            }
-        });
+            }, 5000); // Verifica a cada 5 segundos
+        }
 
-        function openProfileModal() { document.getElementById('profileModal').style.display = 'flex'; document.getElementById('btnCloseProfile').style.display = 'block'; }
-        function closeProfileModal() { document.getElementById('profileModal').style.display = 'none'; }
-        function previewAvatar() {
-            const file = document.getElementById('avatarInput').files[0];
-            const preview = document.getElementById('avatarPreview');
-            const icon = document.getElementById('avatarIcon');
-            if (file) { const reader = new FileReader(); reader.onload = function(e) { preview.src = e.target.result; preview.style.display = 'block'; icon.style.display = 'none'; }; reader.readAsDataURL(file); }
-        }
-        async function saveProfile() {
-            const name = document.getElementById('nameInput').value;
-            const avatarFile = document.getElementById('avatarInput').files[0];
-            const btn = document.querySelector('#profileModal .btn-primary');
-            if (!name) return alert("Por favor, diga seu nome.");
-            btn.innerText = "Salvando...";
-            let avatarFilename = Storage.getProfile().avatar;
-            if (avatarFile) {
-                const formData = new FormData(); formData.append('avatar', avatarFile);
-                try { const res = await fetch('/api/upload_avatar', { method: 'POST', body: formData }); const data = await res.json(); if (data.filename) avatarFilename = data.filename; } catch (e) { console.error(e); }
+        // Gera o HTML do card via JS (deve ser igual ao template Jinja2)
+        function createPostCard(post) {
+            let avatarHtml = '';
+            if (post.author_avatar) {
+                avatarHtml = `<img src="${post.author_avatar}" class="user-avatar" referrerpolicy="no-referrer">`;
+            } else {
+                avatarHtml = `<div class="user-avatar-placeholder">${post.author_initial}</div>`;
             }
-            Storage.setProfile(name, avatarFilename);
-            location.reload(); 
+
+            let deleteBtn = '';
+            if (post.can_delete) {
+                deleteBtn = `<button class="btn-delete" onclick="deletePost(${post.id})"><i class="fas fa-trash"></i></button>`;
+            }
+
+            let captionHtml = '';
+            if (post.caption) {
+                captionHtml = `<div class="card-caption">${post.caption}</div>`;
+            }
+
+            return `
+            <div class="post-card new-post-animation" id="post-${post.id}">
+                <div class="card-header">
+                    ${avatarHtml}
+                    <span class="card-user-name">${post.author_name}</span>
+                    ${deleteBtn}
+                </div>
+                <div class="card-photo-area">
+                    <img src="${post.image_url}" loading="lazy"
+                         onerror="this.onerror=null; this.src='https://placehold.co/400x400/efebe9/654321?text=Imagem+Indispon%C3%ADvel';">
+                    <div class="card-actions">
+                        <i class="fas fa-heart"></i>
+                        <i class="far fa-comment"></i>
+                    </div>
+                    ${captionHtml}
+                </div>
+            </div>`;
         }
+
+        // Inicia o "espião"
+        startPolling();
+
+        // --- FUNÇÕES ANTIGAS ---
         function openPostModal() { document.getElementById('postModal').style.display = 'flex'; }
-        function closePostModal() { document.getElementById('postModal').style.display = 'none'; }
+
+        function closePostModal() {
+            document.getElementById('postModal').style.display = 'none';
+            document.getElementById('postFileInput').value = '';
+            document.getElementById('captionInput').value = '';
+        }
+
         async function submitPost() {
             const fileInput = document.getElementById('postFileInput');
             const caption = document.getElementById('captionInput').value;
-            const roomHash = document.getElementById('roomData').dataset.hash;
-            const inst = document.getElementById('roomData').dataset.institution;
-            const profile = Storage.getProfile();
+            const btn = document.getElementById('btnSubmit');
+
             if (fileInput.files.length === 0) return alert("Escolha uma foto!");
+
+            const originalText = btn.innerText;
+            btn.innerText = "Enviando..."; btn.disabled = true; btn.style.opacity = "0.7";
+
             const formData = new FormData();
             formData.append('photo', fileInput.files[0]);
             formData.append('caption', caption);
-            formData.append('user_name', `${profile.name} - ${inst}`);
-            formData.append('user_avatar', profile.avatar || "");
-            const btn = document.querySelector('#postModal .btn-primary');
-            btn.innerText = "Enviando..."; btn.disabled = true;
-            const res = await fetch(`/api/post/${roomHash}`, { method: 'POST', body: formData });
-            if (res.ok) location.reload(); else { alert("Erro ao postar."); btn.innerText = "Publicar"; btn.disabled = false; }
+
+            try {
+                const res = await fetch(`/api/post/${roomHash}`, { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (res.ok) {
+                    closePostModal();
+                    // Não precisa dar reload! O polling vai pegar o post em 5 segundos
+                    // ou podemos forçar uma verificação agora:
+                    btn.innerText = "Sucesso!";
+                    setTimeout(() => {
+                        btn.innerText = originalText;
+                        btn.disabled = false;
+                        btn.style.opacity = "1";
+                    }, 1000);
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (e) {
+                alert("Erro: " + e.message);
+                btn.innerText = originalText; btn.disabled = false; btn.style.opacity = "1";
+            }
         }
+
         async function deletePost(postId) {
             if(!confirm("Remover esta memória?")) return;
-            const res = await fetch(`/api/delete/${postId}`, { method: 'DELETE', headers: { 'X-Host-UUID': Storage.getUUID() } });
-            if (res.ok) document.getElementById(`post-${postId}`).remove();
+            try {
+                const res = await fetch(`/api/delete/${postId}`, { method: 'DELETE' });
+                if (res.ok) {
+                    const el = document.getElementById(`post-${postId}`);
+                    el.style.transform = "scale(0)";
+                    setTimeout(() => el.remove(), 300);
+                }
+            } catch (e) { console.error(e); }
         }
+
         window.onclick = function(event) {
             if (event.target == document.getElementById('postModal')) closePostModal();
-            if (event.target == document.getElementById('profileModal') && Storage.getProfile().name) closeProfileModal();
         }
     </script>
 </body>
