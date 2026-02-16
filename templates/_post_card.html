@@ -1,0 +1,34 @@
+<div class="post-card" id="post-{{ post.id }}">
+    <div class="card-header">
+        {% if post.author.avatar %}
+            <img src="{{ post.author.avatar }}" class="user-avatar" referrerpolicy="no-referrer" alt="Avatar">
+        {% else %}
+            <div class="user-avatar-placeholder">{{ post.author.name[0] | upper }}</div>
+        {% endif %}
+
+        <span class="card-user-name">{{ post.author.name }}</span>
+
+        {% if current_user.id == post.author_id or current_user.id == room.owner_id %}
+        <button class="btn-delete" onclick="deletePost({{ post.id }})" title="Apagar memória">
+            <i class="fas fa-trash"></i>
+        </button>
+        {% endif %}
+    </div>
+
+    <div class="card-photo-area">
+        <img
+            src="{{ post.image_url }}"
+            alt="Memória compartilhada por {{ post.author.name }}"
+            referrerpolicy="no-referrer"
+            loading="lazy"
+            onerror="this.onerror=null; this.src='https://placehold.co/400x400/efebe9/654321?text=Imagem+Indispon%C3%ADvel';"
+        >
+        <div class="card-actions">
+            <i class="fas fa-heart" title="Amar"></i>
+            <i class="far fa-comment" title="Comentar"></i>
+        </div>
+        {% if post.caption %}
+        <div class="card-caption">{{ post.caption }}</div>
+        {% endif %}
+    </div>
+</div>
