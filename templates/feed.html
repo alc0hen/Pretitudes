@@ -1,39 +1,37 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ room.name }} - Pretitude</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Patrick+Hand&display=swap" rel="stylesheet">
+{% extends "base.html" %}
+
+{% block title %}{{ room.name }} - Pretitude{% endblock %}
+
+{% block content %}
     <style>
-        :root {
-            --brown-dark: #654321;
-            --brown-medium: #8B5A2B;
-            --brown-light: #C19A6B;
-            --bg-color: #f5f5dc;
-            --text-color: #4a3f35;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            background-color: var(--bg-color);
-            background-image: radial-gradient(#d2b48c 15%, transparent 16%), radial-gradient(#d2b48c 15%, transparent 16%);
-            background-size: 20px 20px;
-            font-family: 'Patrick Hand', cursive;
-            padding-bottom: 100px;
-            color: var(--text-color);
-        }
-
         .header-container { text-align: center; padding: 20px; position: relative; }
         .btn-back { position: absolute; top: 20px; left: 20px; background: none; border: none; color: var(--brown-dark); font-size: 1.5rem; cursor: pointer; text-decoration: none; }
         .logo-img { max-width: 280px; width: 80%; height: auto; display: block; margin: 0 auto 15px auto; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.1)); }
         .manifesto-box { background-color: rgba(139, 90, 43, 0.1); border-left: 4px solid var(--brown-dark); padding: 15px 20px; margin: 0 auto 30px auto; max-width: 600px; text-align: center; font-size: 1.2rem; line-height: 1.4; border-radius: 0 8px 8px 0; font-style: italic; }
 
-        .feed-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .feed-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 200px; /* Ensure space for empty state */
+        }
 
-        .post-card { background-color: var(--brown-light); padding: 12px 12px 45px 12px; box-shadow: 6px 6px 15px rgba(0,0,0,0.25); width: 100%; max-width: 350px; transform: rotate(-1deg); transition: transform 0.2s; display: flex; flex-direction: column; }
+        .post-card {
+            background-color: var(--brown-light);
+            padding: 12px 12px 45px 12px;
+            box-shadow: 6px 6px 15px rgba(0,0,0,0.25);
+            width: 350px; /* Fixed width for flex items */
+            max-width: 100%;
+            position: relative;
+            transform: rotate(-1deg);
+            transition: transform 0.2s;
+            margin: 0;
+            display: block;
+        }
         .post-card:nth-child(even) { transform: rotate(1deg); }
         .post-card:hover { transform: rotate(0deg) scale(1.02); z-index: 5; }
 
@@ -55,9 +53,11 @@
             background-color: #f0f0f0;
         }
 
-        .card-actions { margin-top: 10px; display: flex; gap: 15px; font-size: 1.3rem; color: #555; }
+        .card-actions { margin-top: 10px; display: flex; gap: 15px; font-size: 1.3rem; color: #555; align-items: center; }
         .card-caption { margin-top: 12px; font-size: 1.1rem; line-height: 1.3; }
         .btn-delete { background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem; }
+        .btn-like { background: none; border: none; cursor: pointer; color: var(--brown-dark); font-size: 1.3rem; display: flex; align-items: center; gap: 5px; font-family: 'Patrick Hand', cursive; }
+        .btn-like .fas.fa-heart { color: #d32f2f; }
 
         .fab { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background-color: var(--brown-dark); color: white; border-radius: 50%; border: 3px solid #f5f5dc; font-size: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 100; transition: transform 0.2s; }
         .fab:hover { transform: scale(1.1); }
@@ -68,21 +68,53 @@
         .btn-primary { width: 100%; background: var(--brown-dark); color: white; padding: 12px; border: none; margin-top: 15px; cursor: pointer; font-family: 'Amatic SC', cursive; font-size: 1.4rem; font-weight: bold;}
         .btn-primary:disabled { background: #999; cursor: not-allowed; }
 
-        #empty-state { text-align: center; width: 100%; color: var(--brown-dark); margin-top: 30px; font-size: 1.3rem; }
+        #empty-state { text-align: center; width: 100%; color: var(--brown-dark); margin-top: 30px; font-size: 1.3rem; position: relative; }
+
+        .room-code-badge {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--brown-dark);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-family: 'Amatic SC', cursive;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .room-code-badge span {
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1rem;
+            opacity: 0.9;
+        }
     </style>
-</head>
-<body>
     <div id="roomData" data-hash="{{ room.hash_id }}"></div>
 
     <div class="header-container">
+        {% if current_user.is_authenticated %}
         <a href="{{ url_for('profile') }}" class="btn-back" title="Voltar ao Perfil">
             <i class="fas fa-arrow-left"></i>
         </a>
+        {% else %}
+        <a href="{{ url_for('index') }}" class="btn-back" title="Sair">
+            <i class="fas fa-sign-out-alt"></i>
+        </a>
+        {% endif %}
+
         <img src="{{ url_for('static', filename='1.webp') }}" alt="Pretitude" class="logo-img">
+
         <div class="manifesto-box">
             Inspirado no legado de Beatriz Nascimento, este território digital é um quilombo contemporâneo. Um espaço de memória, afeto e futuro, onde cada postagem reafirma que a nossa história é feita por mãos negras. Aqui, celebramos a vida em sua máxima potência criativa.<br>
             Sala: <strong>{{ room.name }}</strong> - {{ room.institution }}
         </div>
+    </div>
+
+    <div class="room-code-badge" title="Compartilhe este código">
+        <i class="fas fa-key"></i> {{ room.code }}
     </div>
 
     {% set max_id = 0 %}
@@ -94,15 +126,25 @@
         {% for post in posts %}
         <div class="post-card" id="post-{{ post.id }}">
             <div class="card-header">
-                {% if post.author.avatar %}
+                {% if post.author and post.author.avatar %}
                     <img src="{{ post.author.avatar }}" class="user-avatar" referrerpolicy="no-referrer" alt="Avatar">
-                {% else %}
+                {% elif not post.author and guest_avatars.get(post.guest_name) %}
+                    <img src="{{ guest_avatars[post.guest_name] }}" class="user-avatar" referrerpolicy="no-referrer" alt="Avatar">
+                {% elif post.author %}
                     <div class="user-avatar-placeholder">{{ post.author.name[0] | upper }}</div>
+                {% else %}
+                    <div class="user-avatar-placeholder">{{ (post.guest_name or "C")[0] | upper }}</div>
                 {% endif %}
 
-                <span class="card-user-name">{{ post.author.name }}</span>
+                <span class="card-user-name">
+                    {% if post.author %}
+                        {{ post.author.name }}
+                    {% else %}
+                        {{ post.guest_name or "Convidado" }}
+                    {% endif %}
+                </span>
 
-                {% if current_user.id == post.author_id or current_user.id == room.owner_id %}
+                {% if current_user.is_authenticated and (current_user.id == post.author_id or current_user.id == room.owner_id) %}
                 <button class="btn-delete" onclick="deletePost({{ post.id }})" title="Apagar memória">
                     <i class="fas fa-trash"></i>
                 </button>
@@ -117,8 +159,10 @@
                     onerror="this.onerror=null; this.src='https://placehold.co/400x400/efebe9/654321?text=Imagem+Indispon%C3%ADvel';"
                 >
                 <div class="card-actions">
-                    <i class="fas fa-heart"></i>
-                    <i class="far fa-comment"></i>
+                    <button class="btn-like" onclick="toggleLike({{ post.id }}, this)">
+                        <i class="{{ 'fas' if post.liked_by_me else 'far' }} fa-heart"></i>
+                        <span>{{ post.likes.count() }}</span>
+                    </button>
                 </div>
                 {% if post.caption %}
                 <div class="card-caption">{{ post.caption }}</div>
@@ -149,10 +193,11 @@
     <script>
         const roomHash = document.getElementById('roomData').dataset.hash;
         const feedContainer = document.getElementById('feed-container');
+        let pollingInterval = null;
 
-        // --- SISTEMA DE ATUALIZAÇÃO AUTOMÁTICA (POLLING) ---
         function startPolling() {
-            setInterval(async () => {
+            if (pollingInterval) clearInterval(pollingInterval);
+            pollingInterval = setInterval(async () => {
                 const lastId = feedContainer.dataset.lastId || 0;
                 try {
                     const res = await fetch(`/api/updates/${roomHash}?since=${lastId}`);
@@ -161,14 +206,11 @@
                     const newPosts = await res.json();
 
                     if (newPosts.length > 0) {
-                        // Remove o aviso de "vazio" se existir
                         const emptyState = document.getElementById('empty-state');
                         if (emptyState) emptyState.remove();
 
-                        // Atualiza o ID mais recente
                         feedContainer.dataset.lastId = newPosts[newPosts.length - 1].id;
 
-                        // Adiciona os posts novos no topo
                         newPosts.forEach(post => {
                             const html = createPostCard(post);
                             feedContainer.insertAdjacentHTML('afterbegin', html);
@@ -177,10 +219,9 @@
                 } catch (e) {
                     console.error("Erro na atualização:", e);
                 }
-            }, 5000); // Verifica a cada 5 segundos
+            }, 5000);
         }
 
-        // Gera o HTML do card via JS (deve ser igual ao template Jinja2)
         function createPostCard(post) {
             let avatarHtml = '';
             if (post.author_avatar) {
@@ -199,6 +240,8 @@
                 captionHtml = `<div class="card-caption">${post.caption}</div>`;
             }
 
+            const heartClass = post.liked_by_me ? 'fas' : 'far';
+
             return `
             <div class="post-card new-post-animation" id="post-${post.id}">
                 <div class="card-header">
@@ -210,18 +253,47 @@
                     <img src="${post.image_url}" loading="lazy"
                          onerror="this.onerror=null; this.src='https://placehold.co/400x400/efebe9/654321?text=Imagem+Indispon%C3%ADvel';">
                     <div class="card-actions">
-                        <i class="fas fa-heart"></i>
-                        <i class="far fa-comment"></i>
+                        <button class="btn-like" onclick="toggleLike(${post.id}, this)">
+                            <i class="${heartClass} fa-heart"></i>
+                            <span>${post.likes_count}</span>
+                        </button>
                     </div>
                     ${captionHtml}
                 </div>
             </div>`;
         }
 
-        // Inicia o "espião"
+        async function toggleLike(postId, btn) {
+            const icon = btn.querySelector('i');
+            const span = btn.querySelector('span');
+            let count = parseInt(span.innerText);
+            const isLiked = icon.classList.contains('fas');
+
+            icon.classList.toggle('fas');
+            icon.classList.toggle('far');
+            span.innerText = isLiked ? Math.max(0, count - 1) : count + 1;
+
+            try {
+                const res = await fetch(`/api/like/${postId}`, { method: 'POST' });
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+
+                span.innerText = data.count;
+                if (data.liked) {
+                     icon.classList.remove('far'); icon.classList.add('fas');
+                } else {
+                     icon.classList.remove('fas'); icon.classList.add('far');
+                }
+            } catch (e) {
+                console.error(e);
+                icon.classList.toggle('fas');
+                icon.classList.toggle('far');
+                span.innerText = count;
+            }
+        }
+
         startPolling();
 
-        // --- FUNÇÕES ANTIGAS ---
         function openPostModal() { document.getElementById('postModal').style.display = 'flex'; }
 
         function closePostModal() {
@@ -250,8 +322,6 @@
 
                 if (res.ok) {
                     closePostModal();
-                    // Não precisa dar reload! O polling vai pegar o post em 5 segundos
-                    // ou podemos forçar uma verificação agora:
                     btn.innerText = "Sucesso!";
                     setTimeout(() => {
                         btn.innerText = originalText;
@@ -274,7 +344,9 @@
                 if (res.ok) {
                     const el = document.getElementById(`post-${postId}`);
                     el.style.transform = "scale(0)";
-                    setTimeout(() => el.remove(), 300);
+                    setTimeout(() => {
+                        el.remove();
+                    }, 300);
                 }
             } catch (e) { console.error(e); }
         }
@@ -283,5 +355,4 @@
             if (event.target == document.getElementById('postModal')) closePostModal();
         }
     </script>
-</body>
-</html>
+{% endblock %}

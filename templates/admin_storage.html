@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Pretitude{% endblock %}
+
+{% block content %}
+<div class="full-screen-center" style="justify-content: flex-start; padding-top: 50px;">
+    <img src="{{ url_for('static', filename='1.webp') }}" alt="Pretitude" class="logo-img" style="max-width: 200px;">
+
+    <div class="card" style="max-width: 600px;">
+        <h3>Administração de Armazenamento</h3>
+
+        <p class="manifesto">
+            Gerencie as contas Google usadas para armazenar as imagens.
+        </p>
+
+        {% if error %}
+        <div class="alert-error">
+            <i class="fas fa-exclamation-circle"></i> {{ error }}
+        </div>
+        {% endif %}
+
+        {% if message %}
+        <div style="background-color: #e8f5e9; color: #2e7d32; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
+            <i class="fas fa-check-circle"></i> {{ message }}
+        </div>
+        {% endif %}
+
+        <div style="text-align: left; margin-bottom: 20px;">
+            <h4 style="font-family: 'Amatic SC', cursive; font-size: 1.5rem; color: var(--brown-dark);">Contas Conectadas:</h4>
+            {% if accounts %}
+                <ul style="list-style: none; padding: 0;">
+                {% for acc in accounts %}
+                    <li style="background: #f5f5f5; padding: 10px; margin-bottom: 5px; border-radius: 5px; display: flex; align-items: center; gap: 10px;">
+                        <i class="fab fa-google" style="color: #DB4437;"></i>
+                        <span style="flex-grow: 1;">{{ acc.email }}</span>
+                        {% if acc.is_active %}
+                            <span style="color: green; font-weight: bold; font-size: 0.8rem;">[ATIVO]</span>
+                        {% else %}
+                            <span style="color: red; font-weight: bold; font-size: 0.8rem;">[INATIVO]</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p style="color: #666; font-style: italic;">Nenhuma conta conectada.</p>
+            {% endif %}
+        </div>
+
+        <a href="{{ url_for('admin_connect_google') }}" class="btn-google">
+            <i class="fas fa-plus"></i> Conectar Nova Conta Google
+        </a>
+
+        <a href="{{ url_for('profile') }}" class="btn-back" style="position: static; margin-top: 20px; display: inline-block;">
+            <i class="fas fa-arrow-left"></i> Voltar ao Perfil
+        </a>
+    </div>
+</div>
+{% endblock %}

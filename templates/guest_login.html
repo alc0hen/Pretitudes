@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="full-screen-center">
+    <img src="{{ url_for('static', filename='1.webp') }}" alt="Pretitude" class="logo-img">
+
+    <div class="card">
+        <h3>Bem-vindo à sala</h3>
+        <p class="manifesto"><strong>{{ room.name }}</strong></p>
+
+        <form method="POST" enctype="multipart/form-data">
+            <input type="text" name="guest_name" placeholder="Como você quer ser chamado?" required autocomplete="off" maxlength="30">
+            <label style="display:block; text-align:left; color:#666; margin: 15px 0 5px 0;">Foto de Perfil (Opcional):</label>
+            <input type="file" name="avatar" accept="image/*" style="margin-bottom: 15px;">
+            <button type="submit" class="btn-primary">Entrar na Roda</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

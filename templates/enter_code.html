@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="full-screen-center">
+    <img src="{{ url_for('static', filename='1.webp') }}" alt="Pretitude" class="logo-img">
+
+    <div class="card">
+        {% if error %}
+        <div class="alert-error">
+            <i class="fas fa-exclamation-circle"></i> {{ error }}
+        </div>
+        {% endif %}
+
+        <form action="{{ url_for('join_by_code') }}" method="POST">
+            <input type="text" name="code" placeholder="Código da Sala (ex: ABC123)" required autocomplete="off" maxlength="6" style="text-transform: uppercase;">
+            <button type="submit" class="btn-primary">Entrar</button>
+        </form>
+
+        <p class="manifesto" style="margin-top: 20px;">
+            Quer criar sua própria sala?<br>
+            <a href="{{ url_for('host_login') }}" style="color: var(--brown-medium); font-weight: bold;">Acesse como Anfitrião</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

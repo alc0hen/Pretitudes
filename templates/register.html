@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Criar Conta - Pretitude{% endblock %}
+
+{% block content %}
+<div class="full-screen-center">
+    <img src="{{ url_for('static', filename='1.webp') }}" alt="Pretitude" class="logo-img">
+
+    <div class="card">
+        <h3>Criar Conta</h3>
+
+        {% if error %}
+        <div class="alert-error">
+            <i class="fas fa-exclamation-circle"></i> {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST">
+            <input type="text" name="username" placeholder="Escolha um Usuário" required autocomplete="off" style="margin-bottom: 15px;">
+            <input type="password" name="password" placeholder="Escolha uma Senha" required>
+            <button type="submit" class="btn-primary">Registrar</button>
+        </form>
+
+        <p class="manifesto" style="margin-top: 20px;">
+            Já tem conta?<br>
+            <a href="{{ url_for('host_login') }}" style="color: var(--brown-medium); font-weight: bold;">Entrar</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

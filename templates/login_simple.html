@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Entrar - Pretitude{% endblock %}
+
+{% block content %}
+<div class="full-screen-center">
+    <img src="{{ url_for('static', filename='1.webp') }}" alt="Pretitude" class="logo-img">
+
+    <div class="card">
+        <h3>Entrar</h3>
+
+        {% if error %}
+        <div class="alert-error">
+            <i class="fas fa-exclamation-circle"></i> {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST">
+            <input type="text" name="username" placeholder="Usuário" required autocomplete="off" style="margin-bottom: 15px;">
+            <input type="password" name="password" placeholder="Senha" required>
+            <button type="submit" class="btn-primary">Acessar</button>
+        </form>
+
+        <p class="manifesto" style="margin-top: 20px;">
+            Não tem conta?<br>
+            <a href="{{ url_for('register') }}" style="color: var(--brown-medium); font-weight: bold;">Criar Conta</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

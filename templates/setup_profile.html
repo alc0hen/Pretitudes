@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Perfil - Pretitude{% endblock %}
+
+{% block content %}
+<div class="full-screen-center">
+    <img src="{{ url_for('static', filename='1.webp') }}" alt="Pretitude" class="logo-img">
+
+    <div class="card">
+        <h3>Olá! Como prefere ser chamado?</h3>
+
+        {% if error %}
+        <div class="alert-error">
+            <i class="fas fa-exclamation-circle"></i> {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data">
+            <input type="text" name="name" placeholder="Seu Nome de Exibição" required autocomplete="off" style="margin-bottom: 15px;">
+
+            <label style="display:block; text-align:left; color:#666; margin-bottom:5px;">Foto de Perfil (Opcional):</label>
+            <input type="file" name="avatar" accept="image/*" style="margin-bottom: 15px;">
+
+            <button type="submit" class="btn-primary">Continuar</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

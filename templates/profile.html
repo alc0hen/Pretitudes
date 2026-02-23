@@ -12,20 +12,57 @@
         text-align: center;
         margin-bottom: 40px;
     }
+    .profile-avatar-wrapper {
+        position: relative;
+        display: inline-block;
+        margin-bottom: 15px;
+    }
     .profile-avatar {
         width: 120px;
         height: 120px;
         border-radius: 50%;
         border: 4px solid #8B5A2B;
         object-fit: cover;
-        margin-bottom: 15px;
+        background-color: #eee;
+    }
+    .btn-edit-avatar {
+        position: absolute;
+        bottom: 5px;
+        right: 0;
+        background: #654321;
+        color: white;
+        border: 2px solid white;
+        border-radius: 50%;
+        width: 32px; height: 32px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+    }
+    .profile-name-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 5px;
     }
     .profile-name {
         font-family: 'Amatic SC', cursive;
         font-size: 2.5rem;
-        margin-bottom: 5px;
         color: #654321;
+        margin: 0;
     }
+    .btn-edit-name {
+        background: none;
+        border: none;
+        color: #aaa;
+        cursor: pointer;
+        font-size: 1.2rem;
+        transition: color 0.2s;
+    }
+    .btn-edit-name:hover { color: #654321; }
+
     .profile-email {
         color: #888;
         font-size: 1.1rem;
@@ -94,9 +131,23 @@
 
 <div class="profile-container">
     <div class="profile-header">
-        <img src="{{ user.avatar }}" alt="Avatar" class="profile-avatar">
-        <h1 class="profile-name">{{ user.name }}</h1>
-        <p class="profile-email">{{ user.email }}</p>
+        <div class="profile-avatar-wrapper">
+            {% if user.avatar %}
+            <img src="{{ user.avatar }}" alt="Avatar" class="profile-avatar">
+            {% else %}
+            <div class="profile-avatar" style="display:flex;align-items:center;justify-content:center;font-size:3rem;background:#ccc;color:white;">
+                {{ (user.name or user.username)[0] | upper }}
+            </div>
+            {% endif %}
+            <button onclick="openEditProfile()" class="btn-edit-avatar" title="Alterar foto"><i class="fas fa-camera"></i></button>
+        </div>
+
+        <div class="profile-name-container">
+            <h1 class="profile-name">{{ user.name or user.username }}</h1>
+            <button onclick="openEditProfile()" class="btn-edit-name" title="Editar nome"><i class="fas fa-pencil-alt"></i></button>
+        </div>
+
+        <p class="profile-email">{{ user.username }}</p>
         <br>
         <a href="{{ url_for('logout') }}" style="color: #DB4437; text-decoration: underline;">Sair</a>
     </div>
@@ -147,9 +198,55 @@
     </div>
 </div>
 
+<div id="editProfileModal" class="modal">
+    <div class="modal-content">
+        <h2 style="font-family: 'Amatic SC'; color: #654321;">Editar Perfil</h2>
+        <input type="text" id="editName" placeholder="Seu nome de exibição" value="{{ user.name or user.username }}">
+        <label style="display:block; margin-top:15px; text-align:left; color:#666; font-size:0.9rem;">Foto de Perfil:</label>
+        <input type="file" id="editAvatar" accept="image/*" style="margin-top:5px;">
+        <button onclick="submitProfile()" class="btn-create" style="width:100%; margin-top:15px;">Salvar</button>
+        <button onclick="closeEditProfile()" style="margin-top: 10px; background: transparent; border: none; width: 100%; cursor: pointer; color: #888;">Cancelar</button>
+    </div>
+</div>
+
 <script>
     function openCreateModal() { document.getElementById('createRoomModal').style.display = 'flex'; }
     function closeCreateModal() { document.getElementById('createRoomModal').style.display = 'none'; }
+
+    function openEditProfile() { document.getElementById('editProfileModal').style.display = 'flex'; }
+    function closeEditProfile() { document.getElementById('editProfileModal').style.display = 'none'; }
+
+    async function submitProfile() {
+        const name = document.getElementById('editName').value;
+        const fileInput = document.getElementById('editAvatar');
+        const btn = document.querySelector('#editProfileModal .btn-create');
+
+        btn.innerText = "Salvando..."; btn.disabled = true;
+
+        const formData = new FormData();
+        formData.append('name', name);
+        if (fileInput.files.length > 0) {
+            formData.append('avatar', fileInput.files[0]);
+        }
+
+        try {
+            const res = await fetch('/api/profile/update', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                location.reload();
+            } else {
+                alert("Erro: " + data.error);
+                btn.innerText = "Salvar"; btn.disabled = false;
+            }
+        } catch (e) {
+            alert("Erro ao salvar perfil.");
+            console.error(e);
+            btn.innerText = "Salvar"; btn.disabled = false;
+        }
+    }
 
     async function createRoom() {
         const institution = document.getElementById('institution').value.trim();
