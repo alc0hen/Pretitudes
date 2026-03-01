@@ -234,15 +234,23 @@
                 method: 'POST',
                 body: formData
             });
-            const data = await res.json();
-            if (data.success) {
+
+            let data;
+            try {
+                const text = await res.text();
+                data = JSON.parse(text);
+            } catch(e) {
+                throw new Error("Erro desconhecido do servidor");
+            }
+
+            if (res.ok && data.success) {
                 location.reload();
             } else {
-                alert("Erro: " + data.error);
+                alert("Erro: " + (data.error || "Erro no servidor"));
                 btn.innerText = "Salvar"; btn.disabled = false;
             }
         } catch (e) {
-            alert("Erro ao salvar perfil.");
+            alert("Erro ao salvar perfil: " + e.message);
             console.error(e);
             btn.innerText = "Salvar"; btn.disabled = false;
         }

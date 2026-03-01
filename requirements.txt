@@ -42,3 +42,4 @@ python-dotenv==1.0.0
 requests
 Pillow
 psycopg2-binary
+pillow-heif
