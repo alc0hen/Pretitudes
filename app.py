@@ -33,6 +33,10 @@ app.config['IS_PROD'] = is_prod
 
 if is_prod:
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URL")
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 280,
+    }
 else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///pedagogico.db'
 
@@ -770,6 +774,7 @@ def delete_post(post_id):
 
 with app.app_context():
     db.create_all()
+
 
 
 if __name__ == '__main__':

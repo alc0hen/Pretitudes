@@ -235,7 +235,12 @@
                 body: formData
             });
             const text = await res.text();
-            const data = text ? JSON.parse(text) : {};
+            let data = {};
+            try {
+                data = text ? JSON.parse(text) : {};
+            } catch (e) {
+                data = { error: "Erro de servidor (" + res.status + ")" };
+            }
             if (data.success) {
                 location.reload();
             } else {
@@ -265,7 +270,12 @@
                 body: JSON.stringify({ institution: institution, room_name: roomName })
             });
             const text = await response.text();
-            const data = text ? JSON.parse(text) : {};
+            let data = {};
+            try {
+                data = text ? JSON.parse(text) : {};
+            } catch (e) {
+                throw new Error("Erro de servidor (" + response.status + ")");
+            }
             if (data.redirect_url) { window.location.href = data.redirect_url; }
         } catch (error) {
             alert("Erro ao criar sala.");

@@ -204,7 +204,12 @@
                     if (!res.ok) return;
 
                     const text = await res.text();
-                    const newPosts = text ? JSON.parse(text) : [];
+                    let newPosts = [];
+                    try {
+                        newPosts = text ? JSON.parse(text) : [];
+                    } catch (e) {
+                        console.error("JSON parse error:", e);
+                    }
 
                     if (newPosts.length > 0) {
                         const emptyState = document.getElementById('empty-state');
@@ -277,7 +282,12 @@
             try {
                 const res = await fetch(`/api/like/${postId}`, { method: 'POST' });
                 const text = await res.text();
-                const data = text ? JSON.parse(text) : {};
+                let data = {};
+                try {
+                    data = text ? JSON.parse(text) : {};
+                } catch (e) {
+                    throw new Error("Erro de servidor (" + res.status + ")");
+                }
                 if (data.error) throw new Error(data.error);
 
                 span.innerText = data.count;
@@ -321,7 +331,12 @@
             try {
                 const res = await fetch(`/api/post/${roomHash}`, { method: 'POST', body: formData });
                 const text = await res.text();
-                const data = text ? JSON.parse(text) : {};
+                let data = {};
+                try {
+                    data = text ? JSON.parse(text) : {};
+                } catch (e) {
+                    throw new Error("Erro de servidor (" + res.status + ")");
+                }
 
                 if (res.ok) {
                     closePostModal();
