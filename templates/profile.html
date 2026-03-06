@@ -234,23 +234,16 @@
                 method: 'POST',
                 body: formData
             });
-
-            let data;
-            try {
-                const text = await res.text();
-                data = JSON.parse(text);
-            } catch(e) {
-                throw new Error("Erro desconhecido do servidor");
-            }
-
-            if (res.ok && data.success) {
+            const text = await res.text();
+            const data = text ? JSON.parse(text) : {};
+            if (data.success) {
                 location.reload();
             } else {
-                alert("Erro: " + (data.error || "Erro no servidor"));
+                alert("Erro: " + data.error);
                 btn.innerText = "Salvar"; btn.disabled = false;
             }
         } catch (e) {
-            alert("Erro ao salvar perfil: " + e.message);
+            alert("Erro ao salvar perfil.");
             console.error(e);
             btn.innerText = "Salvar"; btn.disabled = false;
         }
@@ -271,7 +264,8 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ institution: institution, room_name: roomName })
             });
-            const data = await response.json();
+            const text = await response.text();
+            const data = text ? JSON.parse(text) : {};
             if (data.redirect_url) { window.location.href = data.redirect_url; }
         } catch (error) {
             alert("Erro ao criar sala.");

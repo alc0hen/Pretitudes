@@ -56,19 +56,8 @@
         .card-actions { margin-top: 10px; display: flex; gap: 15px; font-size: 1.3rem; color: #555; align-items: center; }
         .card-caption { margin-top: 12px; font-size: 1.1rem; line-height: 1.3; }
         .btn-delete { background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem; }
-        .btn-like, .btn-comment { background: none; border: none; cursor: pointer; color: var(--brown-dark); font-size: 1.3rem; display: flex; align-items: center; gap: 5px; font-family: 'Patrick Hand', cursive; }
+        .btn-like { background: none; border: none; cursor: pointer; color: var(--brown-dark); font-size: 1.3rem; display: flex; align-items: center; gap: 5px; font-family: 'Patrick Hand', cursive; }
         .btn-like .fas.fa-heart { color: #d32f2f; }
-
-        .comments-section { margin-top: 10px; background: #faf8f5; padding: 10px; border-radius: 6px; font-size: 0.95rem; display: none; }
-        .comment-item { border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; position: relative; }
-        .comment-item:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
-        .comment-author { font-weight: bold; font-family: 'Amatic SC', cursive; font-size: 1.2rem; color: var(--brown-dark); }
-        .comment-text { font-family: 'Patrick Hand', cursive; margin-top: 2px; }
-        .comment-delete { position: absolute; right: 0; top: 0; background: none; border: none; color: #aaa; cursor: pointer; font-size: 0.8rem; }
-        .comment-delete:hover { color: #d32f2f; }
-        .comment-input-area { display: flex; margin-top: 10px; gap: 5px; }
-        .comment-input-area input { flex-grow: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-family: 'Patrick Hand', cursive; }
-        .comment-input-area button { background: var(--brown-dark); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-family: 'Amatic SC', cursive; font-size: 1.1rem; }
 
         .fab { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background-color: var(--brown-dark); color: white; border-radius: 50%; border: 3px solid #f5f5dc; font-size: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 100; transition: transform 0.2s; }
         .fab:hover { transform: scale(1.1); }
@@ -174,38 +163,10 @@
                         <i class="{{ 'fas' if post.liked_by_me else 'far' }} fa-heart"></i>
                         <span>{{ post.likes.count() }}</span>
                     </button>
-                    <button class="btn-comment" onclick="toggleComments({{ post.id }})">
-                        <i class="far fa-comment"></i>
-                        <span id="comment-count-{{ post.id }}">{{ post.comments.count() }}</span>
-                    </button>
                 </div>
                 {% if post.caption %}
                 <div class="card-caption">{{ post.caption }}</div>
                 {% endif %}
-
-                <div class="comments-section" id="comments-{{ post.id }}">
-                    <div class="comments-list" id="comments-list-{{ post.id }}">
-                        {% for comment in post.comments.all()|sort(attribute='created_at') %}
-                        <div class="comment-item" id="comment-{{ comment.id }}">
-                            <div class="comment-author">
-                                {% if comment.user %}
-                                    {{ comment.user.name or comment.user.username }}
-                                {% else %}
-                                    {{ comment.guest_name }}
-                                {% endif %}
-                            </div>
-                            <div class="comment-text">{{ comment.text }}</div>
-                            {% if current_user.is_authenticated and (current_user.id == comment.user_id or current_user.id == room.owner_id or current_user.id == post.author_id) or (not current_user.is_authenticated and session.get('guest_id') == comment.guest_id) %}
-                            <button class="comment-delete" onclick="deleteComment({{ comment.id }})"><i class="fas fa-times"></i></button>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                    </div>
-                    <div class="comment-input-area">
-                        <input type="text" id="comment-input-{{ post.id }}" placeholder="Adicionar comentário..." onkeypress="if(event.key === 'Enter') addComment({{ post.id }})">
-                        <button onclick="addComment({{ post.id }})">Enviar</button>
-                    </div>
-                </div>
             </div>
         </div>
         {% else %}
@@ -237,39 +198,25 @@
         function startPolling() {
             if (pollingInterval) clearInterval(pollingInterval);
             pollingInterval = setInterval(async () => {
+                const lastId = feedContainer.dataset.lastId || 0;
                 try {
-                    const res = await fetch(`/api/updates/${roomHash}`);
+                    const res = await fetch(`/api/updates/${roomHash}?since=${lastId}`);
                     if (!res.ok) return;
 
-                    let newPosts;
-                    try {
-                        const text = await res.text();
-                        newPosts = JSON.parse(text);
-                    } catch(e) { return; }
+                    const text = await res.text();
+                    const newPosts = text ? JSON.parse(text) : [];
 
                     if (newPosts.length > 0) {
                         const emptyState = document.getElementById('empty-state');
                         if (emptyState) emptyState.remove();
-                    }
 
-                    const activePostIds = new Set(newPosts.map(p => `post-${p.id}`));
+                        feedContainer.dataset.lastId = newPosts[newPosts.length - 1].id;
 
-                    Array.from(feedContainer.children).forEach(child => {
-                        if (child.id && child.id.startsWith('post-')) {
-                            if (!activePostIds.has(child.id)) {
-                                child.remove();
-                            }
-                        }
-                    });
-
-                    newPosts.forEach(post => {
-                        if (document.getElementById(`post-${post.id}`)) {
-                            updatePostCard(post);
-                        } else {
+                        newPosts.forEach(post => {
                             const html = createPostCard(post);
                             feedContainer.insertAdjacentHTML('afterbegin', html);
-                        }
-                    });
+                        });
+                    }
                 } catch (e) {
                     console.error("Erro na atualização:", e);
                 }
@@ -296,16 +243,6 @@
 
             const heartClass = post.liked_by_me ? 'fas' : 'far';
 
-            let commentsHtml = '';
-            post.comments.forEach(c => {
-                let delBtn = c.can_delete ? `<button class="comment-delete" onclick="deleteComment(${c.id})"><i class="fas fa-times"></i></button>` : '';
-                commentsHtml += `<div class="comment-item" id="comment-${c.id}">
-                    <div class="comment-author">${c.author_name}</div>
-                    <div class="comment-text">${c.text}</div>
-                    ${delBtn}
-                </div>`;
-            });
-
             return `
             <div class="post-card new-post-animation" id="post-${post.id}">
                 <div class="card-header">
@@ -321,124 +258,10 @@
                             <i class="${heartClass} fa-heart"></i>
                             <span>${post.likes_count}</span>
                         </button>
-                        <button class="btn-comment" onclick="toggleComments(${post.id})">
-                            <i class="far fa-comment"></i>
-                            <span id="comment-count-${post.id}">${post.comments.length}</span>
-                        </button>
                     </div>
                     ${captionHtml}
-                    <div class="comments-section" id="comments-${post.id}">
-                        <div class="comments-list" id="comments-list-${post.id}">
-                            ${commentsHtml}
-                        </div>
-                        <div class="comment-input-area">
-                            <input type="text" id="comment-input-${post.id}" placeholder="Adicionar comentário..." onkeypress="if(event.key === 'Enter') addComment(${post.id})">
-                            <button onclick="addComment(${post.id})">Enviar</button>
-                        </div>
-                    </div>
                 </div>
             </div>`;
-        }
-
-        function updatePostCard(post) {
-            const listContainer = document.getElementById(`comments-list-${post.id}`);
-            if (listContainer) {
-                let commentsHtml = '';
-                post.comments.forEach(c => {
-                    let delBtn = c.can_delete ? `<button class="comment-delete" onclick="deleteComment(${c.id})"><i class="fas fa-times"></i></button>` : '';
-                    commentsHtml += `<div class="comment-item" id="comment-${c.id}">
-                        <div class="comment-author">${c.author_name}</div>
-                        <div class="comment-text">${c.text}</div>
-                        ${delBtn}
-                    </div>`;
-                });
-                listContainer.innerHTML = commentsHtml;
-                const countSpan = document.getElementById(`comment-count-${post.id}`);
-                if (countSpan) countSpan.innerText = post.comments.length;
-            }
-        }
-
-        function toggleComments(postId) {
-            const section = document.getElementById(`comments-${postId}`);
-            if (section.style.display === 'block') {
-                section.style.display = 'none';
-            } else {
-                section.style.display = 'block';
-            }
-        }
-
-        async function addComment(postId) {
-            const input = document.getElementById(`comment-input-${postId}`);
-            const text = input.value.trim();
-            if (!text) return;
-
-            input.disabled = true;
-            try {
-                const res = await fetch(`/api/post/${postId}/comment`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text })
-                });
-
-                let data;
-                try {
-                    const respText = await res.text();
-                    data = JSON.parse(respText);
-                } catch(e) {
-                    throw new Error("Erro desconhecido");
-                }
-
-                if (res.ok) {
-                    input.value = '';
-                    // Polling vai atualizar, mas podemos forçar um fetch logo
-                    fetchUpdates();
-                } else {
-                    alert(data.error || "Erro ao adicionar comentário");
-                }
-            } catch (e) {
-                console.error(e);
-            } finally {
-                input.disabled = false;
-                input.focus();
-            }
-        }
-
-        async function deleteComment(commentId) {
-            if (!confirm("Remover comentário?")) return;
-            try {
-                const res = await fetch(`/api/comment/${commentId}`, { method: 'DELETE' });
-                if (res.ok) {
-                    const el = document.getElementById(`comment-${commentId}`);
-                    if (el) el.remove();
-                    fetchUpdates();
-                }
-            } catch (e) { console.error(e); }
-        }
-
-        async function fetchUpdates() {
-            const res = await fetch(`/api/updates/${roomHash}`);
-            if (res.ok) {
-                let newPosts;
-                try {
-                    const text = await res.text();
-                    newPosts = JSON.parse(text);
-                } catch(e) { return; }
-
-                const activePostIds = new Set(newPosts.map(p => `post-${p.id}`));
-                Array.from(feedContainer.children).forEach(child => {
-                    if (child.id && child.id.startsWith('post-')) {
-                        if (!activePostIds.has(child.id)) {
-                            child.remove();
-                        }
-                    }
-                });
-
-                newPosts.forEach(post => {
-                    if (document.getElementById(`post-${post.id}`)) {
-                        updatePostCard(post);
-                    }
-                });
-            }
         }
 
         async function toggleLike(postId, btn) {
@@ -453,13 +276,8 @@
 
             try {
                 const res = await fetch(`/api/like/${postId}`, { method: 'POST' });
-                let data;
-                try {
-                    const text = await res.text();
-                    data = JSON.parse(text);
-                } catch(e) {
-                    throw new Error("Erro de resposta JSON");
-                }
+                const text = await res.text();
+                const data = text ? JSON.parse(text) : {};
                 if (data.error) throw new Error(data.error);
 
                 span.innerText = data.count;
@@ -502,13 +320,8 @@
 
             try {
                 const res = await fetch(`/api/post/${roomHash}`, { method: 'POST', body: formData });
-                let data;
-                try {
-                    const text = await res.text();
-                    data = JSON.parse(text);
-                } catch(e) {
-                    throw new Error("Erro desconhecido do servidor");
-                }
+                const text = await res.text();
+                const data = text ? JSON.parse(text) : {};
 
                 if (res.ok) {
                     closePostModal();
@@ -519,7 +332,7 @@
                         btn.style.opacity = "1";
                     }, 1000);
                 } else {
-                    throw new Error(data.error || "Erro no servidor");
+                    throw new Error(data.error);
                 }
             } catch (e) {
                 alert("Erro: " + e.message);

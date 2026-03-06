@@ -7,8 +7,9 @@ import io
 import requests
 from dotenv import load_dotenv
 from datetime import datetime
-from PIL import Image, ExifTags
+from PIL import Image, ImageOps
 import pillow_heif
+
 pillow_heif.register_heif_opener()
 
 from flask import Flask, render_template, request, jsonify, url_for, redirect, Response, stream_with_context, session
@@ -118,19 +119,7 @@ class Post(db.Model):
     caption = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     likes = db.relationship('PostLike', backref='post', lazy='dynamic', cascade="all, delete-orphan")
-    comments = db.relationship('PostComment', backref='post', lazy='dynamic', cascade="all, delete-orphan")
 
-
-class PostComment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    guest_name = db.Column(db.String(100), nullable=True)
-    guest_id = db.Column(db.String(36), nullable=True)
-    text = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    user = db.relationship('User', backref=db.backref('comments', lazy=True))
 
 class PostLike(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -165,39 +154,28 @@ def get_drive_service(account_obj):
 
 
 def compress_image_if_needed(file_storage):
-    try:
-        img = Image.open(file_storage)
+    file_storage.seek(0, os.SEEK_END)
+    size = file_storage.tell()
+    file_storage.seek(0)
 
-        try:
-            for orientation in ExifTags.TAGS.keys():
-                if ExifTags.TAGS[orientation] == 'Orientation':
-                    break
-            exif = img._getexif()
-            if exif is not None:
-                orientation = exif.get(orientation, None)
-                if orientation == 3:
-                    img = img.rotate(180, expand=True)
-                elif orientation == 6:
-                    img = img.rotate(270, expand=True)
-                elif orientation == 8:
-                    img = img.rotate(90, expand=True)
-        except Exception:
-            pass
+    # Note: Even if size is small, we should process it to fix Exif orientation
+    # and convert HEIF to JPEG for cross-browser compatibility.
 
-        output = io.BytesIO()
+    img = Image.open(file_storage)
+    output = io.BytesIO()
 
-        if img.mode in ("RGBA", "P"):
-            img = img.convert("RGB")
+    img = ImageOps.exif_transpose(img)
 
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+
+    if size > 5 * 1024 * 1024 or img.size[0] > 1920 or img.size[1] > 1920:
         img.thumbnail((1920, 1920))
-        img.save(output, format="JPEG", quality=70, optimize=True)
-        output.seek(0)
 
-        return output, 'image/jpeg'
-    except Exception as e:
-        # Fallback se PIL não conseguir ler (retorna original)
-        file_storage.seek(0)
-        return file_storage, file_storage.content_type
+    img.save(output, format="JPEG", quality=70, optimize=True)
+    output.seek(0)
+
+    return output, 'image/jpeg'
 
 
 def upload_to_drive(file_obj, filename, mime_type):
@@ -731,7 +709,8 @@ def check_updates(room_hash):
     if not current_user.is_authenticated and not session.get(f'guest_room_{room_hash}'):
         return jsonify({'error': 'Não autorizado'}), 403
 
-    posts_to_return = Post.query.filter(Post.room_hash == room_hash).order_by(Post.created_at.desc()).all()
+    last_id = request.args.get('since', 0, type=int)
+    new_posts = Post.query.filter(Post.room_hash == room_hash, Post.id > last_id).order_by(Post.created_at.asc()).all()
 
     data = []
     room = db.session.get(Room, room_hash)
@@ -739,9 +718,7 @@ def check_updates(room_hash):
     current_user_id = current_user.id if current_user.is_authenticated else None
     guest_id = session.get('guest_id')
 
-    posts_to_return = reversed(posts_to_return)
-
-    for post in posts_to_return:
+    for post in new_posts:
         can_delete = False
         if current_user.is_authenticated:
             can_delete = (current_user.id == post.author_id or current_user.id == room.owner_id)
@@ -763,24 +740,6 @@ def check_updates(room_hash):
             liked_by_me = post.likes.filter_by(guest_id=guest_id).first() is not None
 
         img_url = url_for('cdn_proxy', file_id=post.drive_file_id, _external=True)
-
-        post_comments = []
-        for c in post.comments.order_by(PostComment.created_at.asc()).all():
-            c_can_delete = can_delete or (current_user_id and c.user_id == current_user_id) or (guest_id and c.guest_id == guest_id)
-            c_author_name = "Convidado"
-            if c.user_id and c.user_id:
-                user = db.session.get(User, c.user_id)
-                if user: c_author_name = user.name or user.username
-            elif c.guest_name:
-                c_author_name = c.guest_name
-
-            post_comments.append({
-                'id': c.id,
-                'author_name': c_author_name,
-                'text': c.text,
-                'can_delete': c_can_delete
-            })
-
         data.append({
             'id': post.id,
             'author_name': author_name,
@@ -790,68 +749,9 @@ def check_updates(room_hash):
             'caption': post.caption,
             'can_delete': can_delete,
             'likes_count': post.likes.count(),
-            'liked_by_me': liked_by_me,
-            'comments': post_comments
+            'liked_by_me': liked_by_me
         })
     return jsonify(data)
-
-@app.route('/api/post/<int:post_id>/comment', methods=['POST'])
-def add_comment(post_id):
-    post = db.session.get(Post, post_id)
-    if not post:
-        return jsonify({'error': 'Post não encontrado'}), 404
-
-    data = request.json
-    text = data.get('text', '').strip()
-    if not text:
-        return jsonify({'error': 'Comentário vazio'}), 400
-
-    user_id = current_user.id if current_user.is_authenticated else None
-    guest_id = session.get('guest_id')
-    guest_name = None
-
-    if not user_id:
-        guest_name = session.get(f'guest_name_{post.room_hash}', 'Convidado')
-        if not guest_id:
-            guest_id = str(uuid.uuid4())
-            session['guest_id'] = guest_id
-
-    comment = PostComment(
-        post_id=post.id,
-        user_id=user_id,
-        guest_name=guest_name,
-        guest_id=guest_id,
-        text=text
-    )
-    db.session.add(comment)
-    db.session.commit()
-
-    return jsonify({'success': True})
-
-@app.route('/api/comment/<int:comment_id>', methods=['DELETE'])
-def delete_comment(comment_id):
-    comment = db.session.get(PostComment, comment_id)
-    if not comment:
-        return jsonify({'error': 'Comentário não encontrado'}), 404
-
-    post = db.session.get(Post, comment.post_id)
-    room = db.session.get(Room, post.room_hash)
-
-    user_id = current_user.id if current_user.is_authenticated else None
-    guest_id = session.get('guest_id')
-
-    can_delete = False
-    if user_id and (user_id == comment.user_id or user_id == post.author_id or user_id == room.owner_id):
-        can_delete = True
-    elif guest_id and guest_id == comment.guest_id:
-        can_delete = True
-
-    if can_delete:
-        db.session.delete(comment)
-        db.session.commit()
-        return jsonify({'success': True})
-
-    return jsonify({'error': 'Não autorizado'}), 403
 
 
 @app.route('/api/delete/<int:post_id>', methods=['DELETE'])
