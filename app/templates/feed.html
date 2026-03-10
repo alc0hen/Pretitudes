@@ -200,7 +200,7 @@
             pollingInterval = setInterval(async () => {
                 const lastId = feedContainer.dataset.lastId || 0;
                 try {
-                    const res = await fetch(`/api/updates/${roomHash}?since=${lastId}`);
+                    const res = await fetch(`/api/updates/${roomHash}?since=${lastId}`, { credentials: 'same-origin' });
                     if (!res.ok) return;
 
                     const text = await res.text();
@@ -280,7 +280,7 @@
             span.innerText = isLiked ? Math.max(0, count - 1) : count + 1;
 
             try {
-                const res = await fetch(`/api/like/${postId}`, { method: 'POST' });
+                const res = await fetch(`/api/like/${postId}`, { method: 'POST', credentials: 'same-origin' });
                 const text = await res.text();
                 let data = {};
                 try {
@@ -329,7 +329,7 @@
             formData.append('caption', caption);
 
             try {
-                const res = await fetch(`/api/post/${roomHash}`, { method: 'POST', body: formData });
+                const res = await fetch(`/api/post/${roomHash}`, { method: 'POST', body: formData, credentials: 'same-origin' });
                 const text = await res.text();
                 let data = {};
                 try {
@@ -358,7 +358,7 @@
         async function deletePost(postId) {
             if(!confirm("Remover esta memória?")) return;
             try {
-                const res = await fetch(`/api/delete/${postId}`, { method: 'DELETE' });
+                const res = await fetch(`/api/delete/${postId}`, { method: 'DELETE', credentials: 'same-origin' });
                 if (res.ok) {
                     const el = document.getElementById(`post-${postId}`);
                     el.style.transform = "scale(0)";

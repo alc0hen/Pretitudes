@@ -232,7 +232,8 @@
         try {
             const res = await fetch('/api/profile/update', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                credentials: 'same-origin'
             });
             const text = await res.text();
             let data = {};
@@ -267,7 +268,8 @@
             const response = await fetch('/api/create_room', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ institution: institution, room_name: roomName })
+                body: JSON.stringify({ institution: institution, room_name: roomName }),
+                credentials: 'same-origin'
             });
             const text = await response.text();
             let data = {};
