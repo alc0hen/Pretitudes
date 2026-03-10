@@ -6,7 +6,7 @@ import json
 import io
 import requests
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timedelta
 from PIL import Image, ImageOps
 import pillow_heif
 
@@ -42,6 +42,7 @@ else:
 
 app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY") or secrets.token_hex(16)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 app.config['GOOGLE_CLIENT_ID'] = os.environ.get("GOOGLE_CLIENT_ID")
 app.config['GOOGLE_CLIENT_SECRET'] = os.environ.get("GOOGLE_CLIENT_SECRET")
 
@@ -437,6 +438,7 @@ def guest_login(room_hash):
         if not guest_name:
             return render_template('guest_login.html', room=room, error="Nome é obrigatório")
 
+        session.permanent = True
         session[f'guest_room_{room_hash}'] = True
         session[f'guest_name_{room_hash}'] = guest_name
         if 'guest_id' not in session:
@@ -687,6 +689,7 @@ def toggle_like(post_id):
     guest_id = session.get('guest_id')
 
     if not user_id and not guest_id:
+        session.permanent = True
         guest_id = str(uuid.uuid4())
         session['guest_id'] = guest_id
 
