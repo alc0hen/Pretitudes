@@ -37,6 +37,8 @@ if is_prod:
         'pool_pre_ping': True,
         'pool_recycle': 280,
     }
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_COOKIE_SECURE'] = True
 else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///pedagogico.db'
 
@@ -779,6 +781,3 @@ with app.app_context():
     db.create_all()
 
 
-
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
