@@ -14,6 +14,7 @@ pillow_heif.register_heif_opener()
 
 from flask import Flask, render_template, request, jsonify, url_for, redirect, Response, stream_with_context, session
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import joinedload
 from flask_login import UserMixin, LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -125,7 +126,9 @@ class Post(db.Model):
     storage_account = db.relationship('StorageAccount')
     caption = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     likes = db.relationship('PostLike', backref='post', lazy='dynamic', cascade="all, delete-orphan")
+    comments = db.relationship('PostComment', backref='post', lazy='select', cascade="all, delete-orphan", order_by='PostComment.created_at.asc()')
 
 
 class PostLike(db.Model):
@@ -133,6 +136,17 @@ class PostLike(db.Model):
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     guest_id = db.Column(db.String(36), nullable=True)
+
+
+class PostComment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id', ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    user = db.relationship('User', backref=db.backref('comments', lazy=True))
+    guest_name = db.Column(db.String(100), nullable=True)
+    guest_id = db.Column(db.String(36), nullable=True)
+    text = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 @login_manager.user_loader
@@ -709,6 +723,7 @@ def toggle_like(post_id):
         db.session.add(new_like)
         liked = True
 
+    post.updated_at = datetime.utcnow()
     db.session.commit()
     return jsonify({'liked': liked, 'count': post.likes.count()})
 
@@ -718,8 +733,20 @@ def check_updates(room_hash):
     if not current_user.is_authenticated and not session.get(f'guest_room_{room_hash}'):
         return jsonify({'error': 'Não autorizado'}), 403
 
-    last_id = request.args.get('since', 0, type=int)
-    new_posts = Post.query.filter(Post.room_hash == room_hash, Post.id > last_id).order_by(Post.created_at.asc()).all()
+    since_time_str = request.args.get('since_time')
+    query = Post.query.options(
+        joinedload(Post.author),
+        joinedload(Post.comments).joinedload(PostComment.user)
+    ).filter(Post.room_hash == room_hash)
+
+    if since_time_str:
+        try:
+            since_time = datetime.fromisoformat(since_time_str.replace('Z', '+00:00'))
+            query = query.filter(db.or_(Post.created_at > since_time, Post.updated_at > since_time))
+        except ValueError:
+            pass
+
+    new_posts = query.order_by(Post.created_at.asc()).all()
 
     data = []
     room = db.session.get(Room, room_hash)
@@ -749,6 +776,19 @@ def check_updates(room_hash):
             liked_by_me = post.likes.filter_by(guest_id=guest_id).first() is not None
 
         img_url = url_for('cdn_proxy', file_id=post.drive_file_id, _external=True)
+
+        comments_data = []
+        for c in post.comments:
+            if c.user:
+                c_author_name = c.user.name or c.user.username
+            else:
+                c_author_name = c.guest_name or "Convidado"
+            comments_data.append({
+                'id': c.id,
+                'author_name': c_author_name,
+                'text': c.text
+            })
+
         data.append({
             'id': post.id,
             'author_name': author_name,
@@ -758,10 +798,57 @@ def check_updates(room_hash):
             'caption': post.caption,
             'can_delete': can_delete,
             'likes_count': post.likes.count(),
-            'liked_by_me': liked_by_me
+            'liked_by_me': liked_by_me,
+            'comments': comments_data,
+            'updated_at': post.updated_at.isoformat() if post.updated_at else post.created_at.isoformat(),
+            'created_at': post.created_at.isoformat()
         })
+
     return jsonify(data)
 
+
+@app.route('/api/comment/<int:post_id>', methods=['POST'])
+def add_comment(post_id):
+    post = db.session.get(Post, post_id)
+    if not post: return jsonify({'error': 'Not found'}), 404
+
+    if not current_user.is_authenticated and not session.get(f'guest_room_{post.room_hash}'):
+        return jsonify({'error': 'Não autorizado'}), 403
+
+    data = request.json or {}
+    text = data.get('text', '').strip()
+    if not text:
+        return jsonify({'error': 'Texto vazio'}), 400
+
+    user_id = current_user.id if current_user.is_authenticated else None
+    guest_name = None
+    guest_id = None
+
+    if not current_user.is_authenticated:
+        guest_name = session.get(f'guest_name_{post.room_hash}', 'Convidado')
+        guest_id = session.get('guest_id')
+
+    new_comment = PostComment(
+        post_id=post_id,
+        user_id=user_id,
+        guest_name=guest_name,
+        guest_id=guest_id,
+        text=text
+    )
+    db.session.add(new_comment)
+    post.updated_at = datetime.utcnow()
+    db.session.commit()
+
+    author_name = current_user.name or current_user.username if current_user.is_authenticated else guest_name
+
+    return jsonify({
+        'success': True,
+        'comment': {
+            'id': new_comment.id,
+            'author_name': author_name,
+            'text': text
+        }
+    })
 
 @app.route('/api/delete/<int:post_id>', methods=['DELETE'])
 @login_required

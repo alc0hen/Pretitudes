@@ -59,6 +59,19 @@
         .btn-like { background: none; border: none; cursor: pointer; color: var(--brown-dark); font-size: 1.3rem; display: flex; align-items: center; gap: 5px; font-family: 'Patrick Hand', cursive; }
         .btn-like .fas.fa-heart { color: #d32f2f; }
 
+        .btn-toggle-comments { background: none; border: none; cursor: pointer; color: var(--brown-dark); font-size: 1.3rem; display: flex; align-items: center; gap: 5px; font-family: 'Patrick Hand', cursive; }
+
+        .comments-section { margin-top: 15px; border-top: 1px dashed var(--brown-light); padding-top: 10px; font-family: 'Patrick Hand', cursive; font-size: 1.1rem; display: none; }
+        .comment-list { max-height: 200px; overflow-y: auto; padding-right: 5px; margin-bottom: 10px; }
+        .comment-list::-webkit-scrollbar { width: 6px; }
+        .comment-list::-webkit-scrollbar-thumb { background-color: var(--brown-medium); border-radius: 4px; }
+        .comment { margin-bottom: 5px; line-height: 1.2; word-wrap: break-word; }
+        .comment-author { font-weight: bold; color: var(--brown-dark); margin-right: 5px; }
+        .comment-input-container { display: flex; gap: 5px; }
+        .comment-input { flex-grow: 1; padding: 5px 8px; border: 1px solid #ccc; border-radius: 4px; font-family: 'Patrick Hand', cursive; font-size: 1rem; }
+        .btn-comment { background: var(--brown-dark); color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-family: 'Amatic SC', cursive; font-size: 1.2rem; }
+        .btn-comment:disabled { background: #999; cursor: not-allowed; }
+
         .fab { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background-color: var(--brown-dark); color: white; border-radius: 50%; border: 3px solid #f5f5dc; font-size: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 100; transition: transform 0.2s; }
         .fab:hover { transform: scale(1.1); }
 
@@ -122,7 +135,7 @@
         {% set max_id = posts[0].id %}
     {% endif %}
 
-    <div class="feed-container" id="feed-container" data-last-id="{{ max_id }}">
+    <div class="feed-container" id="feed-container" data-last-time="{% if posts %}{{ posts[0].created_at.isoformat() }}Z{% else %}1970-01-01T00:00:00Z{% endif %}">
         {% for post in posts %}
         <div class="post-card" id="post-{{ post.id }}">
             <div class="card-header">
@@ -163,10 +176,29 @@
                         <i class="{{ 'fas' if post.liked_by_me else 'far' }} fa-heart"></i>
                         <span>{{ post.likes.count() }}</span>
                     </button>
+                    <button class="btn-toggle-comments" onclick="toggleComments({{ post.id }})">
+                        <i class="far fa-comment"></i>
+                        <span id="comment-count-{{ post.id }}">{{ post.comments|length }}</span>
+                    </button>
                 </div>
                 {% if post.caption %}
                 <div class="card-caption">{{ post.caption }}</div>
                 {% endif %}
+
+                <div class="comments-section" id="comments-{{ post.id }}">
+                    <div class="comment-list" id="comment-list-{{ post.id }}">
+                        {% for comment in post.comments %}
+                        <div class="comment">
+                            <span class="comment-author">{{ comment.user.name or comment.user.username if comment.user else (comment.guest_name or 'Convidado') }}:</span>
+                            <span>{{ comment.text }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="comment-input-container">
+                        <input type="text" class="comment-input" id="comment-input-{{ post.id }}" placeholder="Adicionar comentário..." onkeypress="if(event.key === 'Enter') submitComment({{ post.id }})">
+                        <button class="btn-comment" id="btn-comment-{{ post.id }}" onclick="submitComment({{ post.id }})"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
             </div>
         </div>
         {% else %}
@@ -195,32 +227,106 @@
         const feedContainer = document.getElementById('feed-container');
         let pollingInterval = null;
 
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function toggleComments(postId) {
+            const commentsSection = document.getElementById(`comments-${postId}`);
+            if (commentsSection.style.display === 'none' || commentsSection.style.display === '') {
+                commentsSection.style.display = 'block';
+            } else {
+                commentsSection.style.display = 'none';
+            }
+        }
+
         function startPolling() {
             if (pollingInterval) clearInterval(pollingInterval);
             pollingInterval = setInterval(async () => {
-                const lastId = feedContainer.dataset.lastId || 0;
+                const lastTime = feedContainer.dataset.lastTime || "1970-01-01T00:00:00Z";
                 try {
-                    const res = await fetch(`/api/updates/${roomHash}?since=${lastId}`, { credentials: 'same-origin' });
+                    const res = await fetch(`/api/updates/${roomHash}?since_time=${encodeURIComponent(lastTime)}`);
                     if (!res.ok) return;
 
                     const text = await res.text();
-                    let newPosts = [];
+                    let posts = [];
                     try {
-                        newPosts = text ? JSON.parse(text) : [];
+                        posts = text ? JSON.parse(text) : [];
                     } catch (e) {
                         console.error("JSON parse error:", e);
                     }
 
-                    if (newPosts.length > 0) {
+                    if (posts.length > 0) {
                         const emptyState = document.getElementById('empty-state');
                         if (emptyState) emptyState.remove();
 
-                        feedContainer.dataset.lastId = newPosts[newPosts.length - 1].id;
+                        let maxTime = new Date(lastTime).getTime();
 
-                        newPosts.forEach(post => {
-                            const html = createPostCard(post);
-                            feedContainer.insertAdjacentHTML('afterbegin', html);
+                        posts.forEach(post => {
+                            const postTime = new Date(post.updated_at).getTime();
+                            if (postTime > maxTime) maxTime = postTime;
+
+                            const existingCard = document.getElementById(`post-${post.id}`);
+                            if (existingCard) {
+                                // Update likes
+                                const likeBtn = existingCard.querySelector('.btn-like');
+                                const likeIcon = likeBtn.querySelector('i');
+                                const likeCount = likeBtn.querySelector('span');
+
+                                likeCount.innerText = post.likes_count;
+                                if (post.liked_by_me) {
+                                    likeIcon.classList.remove('far');
+                                    likeIcon.classList.add('fas');
+                                } else {
+                                    likeIcon.classList.remove('fas');
+                                    likeIcon.classList.add('far');
+                                }
+
+                                // Update comments
+                                const commentList = document.getElementById(`comment-list-${post.id}`);
+                                const commentCountBtn = document.getElementById(`comment-count-${post.id}`);
+                                if (commentCountBtn && post.comments) {
+                                    commentCountBtn.innerText = post.comments.length;
+                                }
+
+                                if (commentList && post.comments) {
+                                    const oldScrollTop = commentList.scrollTop;
+                                    const oldScrollHeight = commentList.scrollHeight;
+
+                                    let commentsHtml = '';
+                                    post.comments.forEach(c => {
+                                        commentsHtml += `
+                                        <div class="comment">
+                                            <span class="comment-author">${escapeHTML(c.author_name)}:</span>
+                                            <span>${escapeHTML(c.text)}</span>
+                                        </div>`;
+                                    });
+
+                                    if (commentList.innerHTML !== commentsHtml) {
+                                        const isAtBottom = Math.abs(commentList.scrollHeight - commentList.scrollTop - commentList.clientHeight) <= 5;
+                                        commentList.innerHTML = commentsHtml;
+
+                                        if (isAtBottom && commentList.scrollHeight > oldScrollHeight) {
+                                            commentList.scrollTop = commentList.scrollHeight;
+                                        } else {
+                                            commentList.scrollTop = oldScrollTop;
+                                        }
+                                    }
+                                }
+
+                            } else {
+                                const html = createPostCard(post);
+                                feedContainer.insertAdjacentHTML('afterbegin', html);
+                            }
                         });
+
+                        feedContainer.dataset.lastTime = new Date(maxTime).toISOString();
                     }
                 } catch (e) {
                     console.error("Erro na atualização:", e);
@@ -248,11 +354,22 @@
 
             const heartClass = post.liked_by_me ? 'fas' : 'far';
 
+            let commentsHtml = '';
+            if (post.comments) {
+                post.comments.forEach(c => {
+                    commentsHtml += `
+                    <div class="comment">
+                        <span class="comment-author">${escapeHTML(c.author_name)}:</span>
+                        <span>${escapeHTML(c.text)}</span>
+                    </div>`;
+                });
+            }
+
             return `
             <div class="post-card new-post-animation" id="post-${post.id}">
                 <div class="card-header">
                     ${avatarHtml}
-                    <span class="card-user-name">${post.author_name}</span>
+                    <span class="card-user-name">${escapeHTML(post.author_name)}</span>
                     ${deleteBtn}
                 </div>
                 <div class="card-photo-area">
@@ -263,10 +380,70 @@
                             <i class="${heartClass} fa-heart"></i>
                             <span>${post.likes_count}</span>
                         </button>
+                        <button class="btn-toggle-comments" onclick="toggleComments(${post.id})">
+                            <i class="far fa-comment"></i>
+                            <span id="comment-count-${post.id}">${post.comments ? post.comments.length : 0}</span>
+                        </button>
                     </div>
                     ${captionHtml}
+
+                    <div class="comments-section" id="comments-${post.id}">
+                        <div class="comment-list" id="comment-list-${post.id}">
+                            ${commentsHtml}
+                        </div>
+                        <div class="comment-input-container">
+                            <input type="text" class="comment-input" id="comment-input-${post.id}" placeholder="Adicionar comentário..." onkeypress="if(event.key === 'Enter') submitComment(${post.id})">
+                            <button class="btn-comment" id="btn-comment-${post.id}" onclick="submitComment(${post.id})"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
                 </div>
             </div>`;
+        }
+
+        async function submitComment(postId) {
+            const input = document.getElementById(`comment-input-${postId}`);
+            const btn = document.getElementById(`btn-comment-${postId}`);
+            const text = input.value.trim();
+            if (!text) return;
+
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`/api/comment/${postId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+
+                const resText = await res.text();
+                let data = {};
+                try {
+                    data = JSON.parse(resText);
+                } catch(e) {}
+
+                if (res.ok && data.success) {
+                    input.value = '';
+                    const list = document.getElementById(`comment-list-${postId}`);
+                    list.innerHTML += `
+                    <div class="comment new-post-animation">
+                        <span class="comment-author">${escapeHTML(data.comment.author_name)}:</span>
+                        <span>${escapeHTML(data.comment.text)}</span>
+                    </div>`;
+                    list.scrollTop = list.scrollHeight;
+
+                    const commentCountBtn = document.getElementById(`comment-count-${postId}`);
+                    if (commentCountBtn) {
+                        commentCountBtn.innerText = parseInt(commentCountBtn.innerText) + 1;
+                    }
+                } else {
+                    alert("Erro ao adicionar comentário.");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Erro ao conectar ao servidor.");
+            } finally {
+                btn.disabled = false;
+            }
         }
 
         async function toggleLike(postId, btn) {
@@ -280,7 +457,7 @@
             span.innerText = isLiked ? Math.max(0, count - 1) : count + 1;
 
             try {
-                const res = await fetch(`/api/like/${postId}`, { method: 'POST', credentials: 'same-origin' });
+                const res = await fetch(`/api/like/${postId}`, { method: 'POST' });
                 const text = await res.text();
                 let data = {};
                 try {
@@ -329,7 +506,7 @@
             formData.append('caption', caption);
 
             try {
-                const res = await fetch(`/api/post/${roomHash}`, { method: 'POST', body: formData, credentials: 'same-origin' });
+                const res = await fetch(`/api/post/${roomHash}`, { method: 'POST', body: formData });
                 const text = await res.text();
                 let data = {};
                 try {
@@ -358,7 +535,7 @@
         async function deletePost(postId) {
             if(!confirm("Remover esta memória?")) return;
             try {
-                const res = await fetch(`/api/delete/${postId}`, { method: 'DELETE', credentials: 'same-origin' });
+                const res = await fetch(`/api/delete/${postId}`, { method: 'DELETE' });
                 if (res.ok) {
                     const el = document.getElementById(`post-${postId}`);
                     el.style.transform = "scale(0)";
